@@ -31,6 +31,7 @@ class PC:
         return None, None
 
     def ping(self, target_ip):
+        """Permet de ping un PC"""
         mac = self.arp_table.get_mac(target_ip)
         if not mac:
             mac, pc = self.arp_request(target_ip)
@@ -45,6 +46,7 @@ class PC:
             return f"{self.name} : Impossible d’atteindre {target_ip}"
 
     def show_arp_cache(self):
+        """Affiche le cache ARP du PC"""
         return f"Cache ARP {self.name} : {self.arp_table}"
     
     def clear_arp_cache(self):
