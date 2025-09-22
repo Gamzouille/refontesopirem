@@ -25,6 +25,37 @@ class Trame:
         return (f"Trame(type={self.type_trame}, "
                 f"{self.source_ip}({self.source_mac}) → {self.dest_ip}({self.dest_mac}))")
 
+class Switch:
+    def __init__(self):
+        self.ports = {}
+        self.arp_table = ARPTable()
+
+    def connect(self, port_number, pc):
+        self.ports[port_number] = pc
+        if self not in pc.connected:
+            pc.connected.append(self)
+
+    def receive_trame(self, trame, incoming_port):
+        print(f"[Switch] Reçu {trame} sur le port {incoming_port}")
+        self.arp_table.add_entry(trame.source_ip, trame.source_mac)
+
+        dest_mac_known = False
+        for port, pc in self.ports.items():
+            if pc.mac == trame.dest_mac:
+                dest_mac_known = True
+                if port != incoming_port:  # ne renvoie pas au port source
+                    print(f"[Switch] Transmet {trame} au port {port} ({pc.name})")
+                    pc.trames_envoyees.append(trame)
+        if not dest_mac_known:
+            # diffusion à tous les ports sauf celui d'origine
+            for port, pc in self.ports.items():
+                if port != incoming_port:
+                    print(f"[Switch] Diffusion {trame} au port {port} ({pc.name})")
+                    pc.trames_envoyees.append(trame)
+
+    def show_arp_cache(self):
+        return f"Cache ARP Switch : {self.arp_table}"
+
 
 class PC:
     def __init__(self, name, ip, mac):
