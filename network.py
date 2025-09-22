@@ -64,6 +64,7 @@ if __name__ == "__main__":
     print("=== Mini-terminal Sopirem ===")
     print("Vous pouvez maintenant taper des commandes Python comme :")
     print("  pc1.show_arp_cache()")
+    print("  pc1.clear_arp_cache()")
     print("  pc1.ping('192.168.1.2')")
     print("  pc2.show_arp_cache()")
     print("  pc2.ping('192.168.1.1')")
