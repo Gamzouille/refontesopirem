@@ -46,6 +46,11 @@ class PC:
 
     def show_arp_cache(self):
         return f"Cache ARP {self.name} : {self.arp_table}"
+    
+    def clear_arp_cache(self):
+        """Vide complètement le cache ARP du PC"""
+        self.arp_table.table.clear()
+        return f"Cache ARP de {self.name} vidé."
 
 
 if __name__ == "__main__":
