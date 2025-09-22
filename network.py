@@ -116,7 +116,9 @@ if __name__ == "__main__":
     # Créer deux PCs et les connecter
     pc1 = PC("PC1", "192.168.1.1", "AA:BB:CC:DD:EE:01")
     pc2 = PC("PC2", "192.168.1.2", "AA:BB:CC:DD:EE:02")
-    pc1.connect(pc2)
+    switch1 = Switch()
+    switch.connect(1, pc1)
+    switch.connect(2, pc2)
 
     print("=== Mini-terminal Sopirem ===")
     print("Vous pouvez maintenant taper des commandes Python comme :")
@@ -126,6 +128,8 @@ if __name__ == "__main__":
     print("  pc2.show_arp_cache()")
     print("  pc2.ping('192.168.1.1')")
     print("  pc2.voir_trames()")
+    print("trame = Trame(pc1.ip, pc2.ip, pc1.mac, pc2.mac, "ARP"")
+    print ("switch.receive_trame(trame, incoming_port=1)")
     print("Tapez Ctrl+D (ou Ctrl+Z sur Windows) pour quitter\n")
 
     code.interact(local=locals())
