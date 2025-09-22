@@ -1,0 +1,3 @@
+- Se positionner dans le répertoire
+- Vérfier la version de git et si il est installé "git -v"
+- Cloner le répertoire "git clone https://gitlab.com/siollb/refontesopirem.git"
