@@ -12,6 +12,20 @@ class ARPTable:
         return str(self.table)
 
 
+class Trame:
+    def __init__(self, source_ip, dest_ip, source_mac, dest_mac, type_trame="ARP"):
+        self.source_ip = source_ip
+        self.dest_ip = dest_ip
+        self.source_mac = source_mac
+        self.dest_mac = dest_mac
+        self.type_trame = type_trame
+
+    def __repr__(self):
+        """Permet d'afficher les trames automatiquement lors d'un ping"""
+        return (f"Trame(type={self.type_trame}, "
+                f"{self.source_ip}({self.source_mac}) → {self.dest_ip}({self.dest_mac}))")
+
+
 class PC:
     def __init__(self, name, ip, mac):
         self.name = name
@@ -19,6 +33,7 @@ class PC:
         self.mac = mac
         self.arp_table = ARPTable()
         self.connected = []
+        self.trames_envoyees = []  # Historique des trames envoyées
 
     def connect(self, other_pc):
         self.connected.append(other_pc)
@@ -27,11 +42,14 @@ class PC:
     def arp_request(self, target_ip):
         for pc in self.connected:
             if pc.ip == target_ip:
+                trame = Trame(self.ip, pc.ip, self.mac, pc.mac, type_trame="ARP")
+                self.trames_envoyees.append(trame)
+                """Ajoute la trame dans la liste des trames envoyées"""
+                print(f"[{self.name}] Envoi {trame}")
                 return pc.mac, pc
         return None, None
 
     def ping(self, target_ip):
-        """Permet de ping un PC"""
         mac = self.arp_table.get_mac(target_ip)
         if not mac:
             mac, pc = self.arp_request(target_ip)
@@ -41,18 +59,24 @@ class PC:
             pc = next((p for p in self.connected if p.ip == target_ip), None)
 
         if mac and pc:
+            trame_ping = Trame(self.ip, pc.ip, self.mac, pc.mac, type_trame="ICMP")
+            """trame ICMP"""
+            self.trames_envoyees.append(trame_ping)
+            """L'ajoute dans la liste des trames envoyées"""
+            print(f"[{self.name}] Envoi {trame_ping}")
             return f"{self.name} → {pc.name} : Ping OK"
         else:
             return f"{self.name} : Impossible d’atteindre {target_ip}"
 
     def show_arp_cache(self):
-        """Affiche le cache ARP du PC"""
         return f"Cache ARP {self.name} : {self.arp_table}"
-    
-    def clear_arp_cache(self):
-        """Vide complètement le cache ARP du PC"""
-        self.arp_table.table.clear()
-        return f"Cache ARP de {self.name} vidé."
+
+    def voir_trames(self):
+        """méthode pour afficher les trames, pour le pc sur lequel la méthode..."""
+        if not self.trames_envoyees:
+            return f"{self.name} n'a envoyé aucune trame."
+        for trame in self.trames_envoyees:
+            print(trame)  # __repr__ sera appelé automatiquement ici
 
 
 if __name__ == "__main__":
@@ -66,11 +90,11 @@ if __name__ == "__main__":
     print("=== Mini-terminal Sopirem ===")
     print("Vous pouvez maintenant taper des commandes Python comme :")
     print("  pc1.show_arp_cache()")
-    print("  pc1.clear_arp_cache()")
     print("  pc1.ping('192.168.1.2')")
+    print("  pc1.voir_trames()")
     print("  pc2.show_arp_cache()")
     print("  pc2.ping('192.168.1.1')")
+    print("  pc2.voir_trames()")
     print("Tapez Ctrl+D (ou Ctrl+Z sur Windows) pour quitter\n")
 
-    # Ouvre un terminal interactif Python avec toutes les variables locales disponibles
     code.interact(local=locals())
