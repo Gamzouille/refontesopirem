@@ -34,6 +34,7 @@ class Switch:
     def connect(self, port_number, pc):
         self.ports[port_number] = pc
         pc.switch = self  # chaque PC connaît son switch
+        pc.switch_port = port_number
 
     def receive_trame(self, trame, incoming_port):
         print(f"[Switch] Reçu {trame} sur le port {incoming_port}")
