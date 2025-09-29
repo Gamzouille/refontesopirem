@@ -70,49 +70,42 @@ class PC:
         self.switch_port = None
 
     def receive_trame(self, trame):
-        """Réception d'une trame venant du switch"""
         print(f"[{self.name}] Reçu {trame}")
 
-        # Si c'est une trame ARP qui me concerne
-        if trame.type_trame == "ARP" and trame.dest_ip == self.ip:
-            # Réponse ARP = j'envoie mon MAC à la source
-            reply = Trame(self.ip, trame.source_ip, self.mac, trame.source_mac, type_trame="ARP-REPLY")
-            print(f"[{self.name}] Répond avec {reply}")
-            self.trames_envoyees.append(reply)
-            if self.switch:
+        if trame.type_trame == "ARP" and trame.dest_mac == "FF:FF:FF:FF:FF:FF":
+            # Je suis la cible si mon IP correspond
+            if trame.dest_ip == self.ip:
+                reply = Trame(
+                    source_ip=self.ip,
+                    dest_ip=trame.source_ip,
+                    source_mac=self.mac,
+                    dest_mac=trame.source_mac,
+                    type_trame="ARP-REPLY"
+                )
+                print(f"[{self.name}] Répond avec {reply}")
                 self.switch.receive_trame(reply, self.switch_port)
 
-        # Si c'est une trame ICMP (ping) qui me concerne
+        elif trame.type_trame == "ARP-REPLY" and trame.dest_ip == self.ip:
+            # Mettre à jour mon cache ARP
+            self.arp_table.add_entry(trame.source_ip, trame.source_mac)
+
         elif trame.type_trame == "ICMP" and trame.dest_ip == self.ip:
             print(f"[{self.name}] Ping reçu de {trame.source_ip} ({trame.source_mac}) → Réponse OK")
 
-    def connect(self, port_number, pc):
-        self.ports[port_number] = pc
-        pc.switch = self  # chaque PC connaît son switch
-        pc.switch_port = port_number  # et son numéro de port
-        print(f"{pc.name} connecté à {self.nom} sur le port {port_number}")
-
-
     def arp_request(self, target_ip):
         if self.switch:
-            # Chercher si un PC sur le switch a cette IP
-            target_pc = next((p for p in self.switch.ports.values()
-                              if p and p.ip == target_ip), None)
+            # Construire une trame ARP de diffusion (broadcast)
             trame = Trame(
-                self.ip,
-                target_ip,
-                self.mac,
-                target_pc.mac if target_pc else "FF:FF:FF:FF:FF:FF",
+                source_ip=self.ip,
+                dest_ip=target_ip,
+                source_mac=self.mac,
+                dest_mac="FF:FF:FF:FF:FF:FF",  #  toujours broadcast
                 type_trame="ARP"
             )
             self.trames_envoyees.append(trame)
             print(f"[{self.name}] Envoi {trame}")
             self.switch.receive_trame(trame, self.switch_port)
-
-            if target_pc:
-                # Mise à jour du cache ARP
-                self.arp_table.add_entry(target_ip, target_pc.mac)
-                return target_pc.mac, target_pc
+            return None, None  # La réponse arrivera plus tard (ARP-REPLY)
         return None, None
 
     def ping(self, target_ip):
@@ -120,12 +113,25 @@ class PC:
         pc = None
 
         if not mac:
-            mac, pc = self.arp_request(target_ip)
-        else:
-            # Chercher directement la cible via le switch
+            # Envoie d'une requête ARP (diffusion)
+            self.arp_request(target_ip)
+            # Après diffusion, on regarde si une réponse a rempli le cache
+            mac = self.arp_table.get_mac(target_ip)
+
+        if mac:
+            # Trouver le PC correspondant dans le switch
+            pc = next((p for p in self.switch.ports.values()
+                       if p and p.ip == target_ip), None)
+
+        if mac and pc:
+            trame_ping = Trame(self.ip, pc.ip, self.mac, pc.mac, type_trame="ICMP")
+            self.trames_envoyees.append(trame_ping)
+            print(f"[{self.name}] Envoi {trame_ping}")
             if self.switch:
-                pc = next((p for p in self.switch.ports.values()
-                           if p and p.ip == target_ip), None)
+                self.switch.receive_trame(trame_ping, self.switch_port)
+            return f"{self.name} → {pc.name} : Ping OK"
+        else:
+            return f"{self.name} : Impossible d'atteindre {target_ip}"
 
         if mac and pc:
             trame_ping = Trame(self.ip, pc.ip, self.mac, pc.mac, type_trame="ICMP")
