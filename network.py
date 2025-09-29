@@ -26,8 +26,9 @@ class Trame:
 
 
 class Switch:
-    def __init__(self):
-        self.ports = {}
+    def __init__(self, nom, nb_ports=4):
+        self.nom = nom
+        self.ports = {i: None for i in range(1, nb_ports + 1)}  # ports vides
         self.arp_table = ARPTable()
 
     def connect(self, port_number, pc):
