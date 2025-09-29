@@ -32,8 +32,7 @@ class Switch:
 
     def connect(self, port_number, pc):
         self.ports[port_number] = pc
-        if self not in pc.connected:
-            pc.connected.append(self)
+        pc.switch = self  # chaque PC connaît son switch
 
     def receive_trame(self, trame, incoming_port):
         print(f"[Switch] Reçu {trame} sur le port {incoming_port}")
@@ -45,13 +44,13 @@ class Switch:
                 dest_mac_known = True
                 if port != incoming_port:  # ne renvoie pas au port source
                     print(f"[Switch] Transmet {trame} au port {port} ({pc.name})")
-                    pc.trames_envoyees.append(trame)
+                    pc.receive_trame(trame)
         if not dest_mac_known:
             # diffusion à tous les ports sauf celui d'origine
             for port, pc in self.ports.items():
                 if port != incoming_port:
                     print(f"[Switch] Diffusion {trame} au port {port} ({pc.name})")
-                    pc.trames_envoyees.append(trame)
+                    pc.receive_trame(trame)
 
     def show_arp_cache(self):
         return f"Cache ARP Switch : {self.arp_table}"
@@ -116,9 +115,8 @@ if __name__ == "__main__":
     # Créer deux PCs et les connecter
     pc1 = PC("PC1", "192.168.1.1", "AA:BB:CC:DD:EE:01")
     pc2 = PC("PC2", "192.168.1.2", "AA:BB:CC:DD:EE:02")
-    switch1 = Switch()
-    switch1.connect(1, pc1)
-    switch1.connect(2, pc2)
+    pc1.connect(pc2)
+    pc2.connect(pc1)
 
     print("=== Mini-terminal Sopirem ===")
     print("Vous pouvez maintenant taper des commandes Python comme :")
