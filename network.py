@@ -62,6 +62,12 @@ class Switch:
     def show_mac_table(self):
         return f"Table MAC du switch {self.nom} : {self.mac_table}"
 
+    def empty_mac_table(self):
+        """Vide complètement la table MAC du switch."""
+        self.mac_table.clear()
+        print(f"[{self.nom}] Table MAC vidée.")
+
+
 
 class PC:
     def __init__(self, name, ip, mac):
@@ -157,6 +163,11 @@ class PC:
         for trame in self.trames_envoyees:
             print(trame)
 
+    def empty_arp_table(self):
+        """Vide complètement la table MAC du switch."""
+        self.arp_table.table.clear()
+        print(f"[{self.name}] Cache arp vidé.")
+
 
 if __name__ == "__main__":
     import code
@@ -177,7 +188,9 @@ if __name__ == "__main__":
     print("  pc2.show_arp_cache()")
     print("  pc2.ping('192.168.1.1')")
     print("  pc2.voir_trames()")
-    print("  switch1.show_arp_cache()  # pour voir les ports et le cache ARP du switch")
+    print("  switch1.show_mac_table()  # pour voir la table mac du switch")
+    print("  switch1.empty_mac_table()  # pour vider la table mac du switch")
+    print("  pc1.empty_arp_table()  # pour vider le cache arp d'un pc")
     print("Tapez Ctrl+D (ou Ctrl+Z sur Windows) pour quitter\n")
 
     code.interact(local=locals())
