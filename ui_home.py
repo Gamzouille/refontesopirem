@@ -3,6 +3,7 @@ import sys
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame)
 
+from ui_nouveau_projet import ProjectWindow
 
 class HomeWindow(QMainWindow):
     def __init__(self):
@@ -91,7 +92,10 @@ class HomeWindow(QMainWindow):
         self.underline_anim.start()
 
     def create_project(self):
-        self.title.setText("Création d’un nouveau projet (placeholder)")
+        """Ouvre la fenêtre du nouveau projet"""
+        self.project_window = ProjectWindow()
+        self.project_window.show()
+        self.close()
 
     def import_project(self):
         self.title.setText("Importation d’un projet (placeholder)")
