@@ -1,4 +1,3 @@
-# ui_nouveau_projet.py
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
 

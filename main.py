@@ -1,4 +1,3 @@
-# main.py
 import sys
 from PyQt6.QtWidgets import QApplication
 from ui_home import HomeWindow

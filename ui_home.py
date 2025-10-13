@@ -1,4 +1,3 @@
-# ui_home.py
 import sys
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame)
