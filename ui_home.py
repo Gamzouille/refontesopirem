@@ -1,8 +1,9 @@
 import sys
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame
 
 from ui_nouveau_projet import ProjectWindow
+
 
 class HomeWindow(QMainWindow):
     def __init__(self):
@@ -38,42 +39,60 @@ class HomeWindow(QMainWindow):
         )
         self.underline.setStyleSheet("background-color: #4CAF50; border-radius: 2px;")
         self.underline_anim = QPropertyAnimation(self.underline, b"geometry")
-        self.underline_anim.setDuration(800)  # durée animation en ms
+        self.underline_anim.setDuration(800)
 
         # --- Boutons ---
         self.btn_new = QPushButton("Créer un nouveau projet")
         self.btn_import = QPushButton("Importer un projet existant")
+        self.btn_default = QPushButton("Ouvrir l'exercice par défaut")  # nouveau bouton
         self.btn_quit = QPushButton("Quitter")
-        for btn in (self.btn_new, self.btn_import, self.btn_quit):
+
+        for btn in (self.btn_new, self.btn_import, self.btn_default, self.btn_quit):
             btn.setFixedHeight(40)
-            btn.setStyleSheet("""
-                QPushButton {
-                    font-size: 16px;
-                    border-radius: 12px;
-                    background-color: #4CAF50;
-                    color: white;
-                    padding: 5px;
-                }
-                QPushButton:hover {
-                    background-color: #45a049;
-                }
-            """)
+            # Couleur différente pour le bouton par défaut
+            if btn == self.btn_default:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        font-size: 16px;
+                        border-radius: 12px;
+                        background-color: #2196F3;
+                        color: white;
+                        padding: 5px;
+                    }
+                    QPushButton:hover {
+                        background-color: #1976D2;
+                    }
+                """)
+            else:
+                btn.setStyleSheet("""
+                    QPushButton {
+                        font-size: 16px;
+                        border-radius: 12px;
+                        background-color: #4CAF50;
+                        color: white;
+                        padding: 5px;
+                    }
+                    QPushButton:hover {
+                        background-color: #45a049;
+                    }
+                """)
             layout.addWidget(btn)
         layout.addStretch(2)
 
         # --- Connexions boutons ---
         self.btn_new.clicked.connect(self.create_project)
         self.btn_import.clicked.connect(self.import_project)
+        self.btn_default.clicked.connect(self.open_default_exercise)
         self.btn_quit.clicked.connect(self.close)
 
         # --- Animation d'apparition de la fenêtre ---
         self.fade_in()
 
-        # --- Lancer le soulignement après 1,5 seconde ---
+        # --- Lancer le soulignement après 0,5 seconde ---
         QTimer.singleShot(500, self.animate_underline)
 
+    # --- Animations ---
     def fade_in(self):
-        """Animation d'apparition en fondu"""
         self.setWindowOpacity(0)
         self.anim = QPropertyAnimation(self, b"windowOpacity")
         self.anim.setDuration(300)
@@ -82,7 +101,6 @@ class HomeWindow(QMainWindow):
         self.anim.start()
 
     def animate_underline(self):
-        """Animation de soulignement du titre de gauche à droite"""
         title_geom = self.title.geometry()
         start_rect = QRect(title_geom.x(), title_geom.y() + title_geom.height() + 5, 0, 3)
         end_rect = QRect(title_geom.x(), title_geom.y() + title_geom.height() + 5, title_geom.width(), 3)
@@ -90,6 +108,7 @@ class HomeWindow(QMainWindow):
         self.underline_anim.setEndValue(end_rect)
         self.underline_anim.start()
 
+    # --- Actions boutons ---
     def create_project(self):
         """Ouvre la fenêtre du nouveau projet"""
         self.project_window = ProjectWindow()
@@ -99,15 +118,20 @@ class HomeWindow(QMainWindow):
     def import_project(self):
         self.title.setText("Importation d’un projet (placeholder)")
 
+    def open_default_exercise(self):
+        """Ouvre la fenêtre correspondant à l'exercice par défaut"""
+        self.project_window = ProjectWindow()  # Ici on peut créer une classe spécifique plus tard
+        self.project_window.show()
+        self.close()
 
+
+# --- Lancement de l'application ---
 def run_app():
     app = QApplication(sys.argv)
     window = HomeWindow()
     window.show()
     sys.exit(app.exec())
 
+
 if __name__ == "__main__":
-    app =  QApplication(sys.argv)
-    window = HomeWindow()
-    window.show()
-    sys.exit(app.exec())
+    run_app()
