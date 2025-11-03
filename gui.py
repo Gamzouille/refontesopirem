@@ -49,12 +49,15 @@ class HomeWindow(QMainWindow):
         self.btn_switch.clicked.connect(self.ajouteSwitch)
         self.btn_quit.clicked.connect(self.close)
 
-
+        print("OK entrée Contenu Widget")
         # --- Contenu ---
         layout2 = QGridLayout()
         layout2.addWidget(self.btn_pc, 0, 0)
         layout2.addWidget(self.btn_switch, 0, 1)
         layout2.addWidget(self.btn_quit, 0, 2)
+
+        print("OK Sortie Contenu Widget")
+
 
     print("OK 3")
     def ajoutePC(self):
