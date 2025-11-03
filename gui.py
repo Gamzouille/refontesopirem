@@ -1,34 +1,18 @@
 import sys
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame)
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout
+import json
+from ui_nouveau_projet import ProjectWindow
 
+with open("scenario.json") as f:
+    data = json.load(f)
 
-class HomeWindow(QMainWindow):
+class Fenetre(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sopirem")
-        self.resize(500, 300)
-
-        # --- Centrer la fenêtre sur l'écran ---
-        screen_geometry = QApplication.primaryScreen().geometry()
-        x = (screen_geometry.width() - self.width()) // 2
-        y = (screen_geometry.height() - self.height()) // 2
-        self.move(x, y)
-
-        # --- Contenu central ---
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout()
-        layout.setSpacing(20)
-        layout.setContentsMargins(50, 30, 50, 30)
-        central.setLayout(layout)
 
         # --- Titre ---
-        self.title = QLabel("Bienvenue sur Sopirem")
-        self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.title.setStyleSheet("font-size: 24px; font-weight: bold;")
-        layout.addStretch(1)
-        layout.addWidget(self.title)
 
         # --- Boutons ---
         self.btn_pc = QPushButton("Ajouter un PC")
@@ -48,16 +32,24 @@ class HomeWindow(QMainWindow):
                     background-color: #2e3947;
                 }
             """)
-            layout.addWidget(btn)
-        layout.addStretch(2)
+
 
         # --- Connexions boutons ---
         self.btn_pc.clicked.connect(self.ajoutePC)
         self.btn_switch.clicked.connect(self.ajouteSwitch)
         self.btn_quit.clicked.connect(self.close)
 
+
+        # --- Contenu ---
+        layout = QGridLayout()
+        layout.addWidget(self.btn_pc, 0, 0)
+        layout.addWidget(self.btn_switch, 0, 1)
+        layout.addWidget(self.btn_quit, 0, 2)
+
     def ajoutePC(self):
         self.title.setText("Ajouter un PC(placeholder)")
+        adresse_ip = input("Entrez l'adresse IP du PC")
+
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
@@ -65,12 +57,12 @@ class HomeWindow(QMainWindow):
 
 def run_app():
     app = QApplication(sys.argv)
-    window = HomeWindow()
+    window = Fenetre()
     window.show()
     sys.exit(app.exec())
 
 if __name__ == "__main__":
     app =  QApplication(sys.argv)
-    window = HomeWindow()
+    window = Fenetre()
     window.show()
     sys.exit(app.exec())
