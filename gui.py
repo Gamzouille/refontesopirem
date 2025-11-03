@@ -3,9 +3,12 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout
 import json
 from ui_nouveau_projet import ProjectWindow
+import network
 
 with open("scenario.json") as f:
     data = json.load(f)
+
+
 
 class Fenetre(QMainWindow):
     def __init__(self):
@@ -48,12 +51,12 @@ class Fenetre(QMainWindow):
 
     def ajoutePC(self):
         self.title.setText("Ajouter un PC(placeholder)")
-        adresse_ip = input("Entrez l'adresse IP du PC")
-
+        network.PC.name = input("Entrez le nom du PC : ")
+        network.PC.ip = input("Entrez l'adresse IP du PC")
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
-
+        network.Switch.name = input("Entrez le nom du Switch")
 
 def run_app():
     app = QApplication(sys.argv)
@@ -62,7 +65,4 @@ def run_app():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    app =  QApplication(sys.argv)
-    window = Fenetre()
-    window.show()
-    sys.exit(app.exec())
+    run_app()
