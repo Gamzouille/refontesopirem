@@ -8,13 +8,13 @@ import network
 with open("scenario.json") as f:
     data = json.load(f)
 
+print("OK 1")
 
-
-class Fenetre(QMainWindow):
+class HomeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Sopirem")
-
+        self.setMinimumSize(800, 600)
         # --- Titre ---
 
         # --- Boutons ---
@@ -36,7 +36,7 @@ class Fenetre(QMainWindow):
                 }
             """)
 
-
+        print("OK 2")
         # --- Connexions boutons ---
         self.btn_pc.clicked.connect(self.ajoutePC)
         self.btn_switch.clicked.connect(self.ajouteSwitch)
@@ -49,20 +49,24 @@ class Fenetre(QMainWindow):
         layout.addWidget(self.btn_switch, 0, 1)
         layout.addWidget(self.btn_quit, 0, 2)
 
+    print("OK 3")
     def ajoutePC(self):
         self.title.setText("Ajouter un PC(placeholder)")
-        network.PC.name = input("Entrez le nom du PC : ")
-        network.PC.ip = input("Entrez l'adresse IP du PC")
+        network.PC.name = QLabel("Entrez le nom du PC : ")
+        nom = QLineEdit()
+        network.PC.ip = QLabel("Entrez l'adresse IP du PC")
+        ip = QLineEdit()
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
         network.Switch.name = input("Entrez le nom du Switch")
-
+print("OK 4")
 def run_app():
     app = QApplication(sys.argv)
-    window = Fenetre()
+    window = HomeWindow()
     window.show()
     sys.exit(app.exec())
 
 if __name__ == "__main__":
     run_app()
+
