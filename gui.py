@@ -1,8 +1,7 @@
 import sys
-from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
+    QLineEdit
 import json
-from ui_nouveau_projet import ProjectWindow
 import network
 
 with open("scenario.json") as f:
@@ -50,7 +49,6 @@ class HomeWindow(QMainWindow):
 
 
         # --- Contenu ---
-        layout = QGridLayout()
         layout.addWidget(self.btn_pc, 0, 0)
         layout.addWidget(self.btn_switch, 0, 1)
         layout.addWidget(self.btn_quit, 0, 2)
