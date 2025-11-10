@@ -1,6 +1,8 @@
 import sys
+
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
-    QLineEdit
+    QLineEdit, QToolBar
 import json
 import network
 
@@ -21,8 +23,18 @@ class HomeWindow(QMainWindow):
         self.setCentralWidget(central)
         layout = QGridLayout()
         central.setLayout(layout)
+        interface_layout = QGridLayout()
+        central.setLayout(interface_layout)
+
+        # --- Widgets ---
+        toolbar = QToolBar("Ma barre d'outil")
+        self.addToolBar(toolbar)
 
         # --- Boutons ---
+        self.button_action = QAction("Your button", self)
+        self.button_action.setStatusTip("This is your button")
+        self.button_action.triggered.connect(self.toolbar_button_clicked)
+        toolbar.addAction(self.button_action)
         self.btn_pc = QPushButton("Ajouter un PC")
         self.btn_switch = QPushButton("Ajouter un switch")
         self.btn_quit = QPushButton("Quitter")
@@ -40,6 +52,8 @@ class HomeWindow(QMainWindow):
                     background-color: #2e3947;
                 }
             """)
+        #vide
+
 
         print("OK 2")
         # --- Connexions boutons ---
@@ -47,13 +61,18 @@ class HomeWindow(QMainWindow):
         self.btn_switch.clicked.connect(self.ajouteSwitch)
         self.btn_quit.clicked.connect(self.close)
 
-
         # --- Contenu ---
         layout.addWidget(self.btn_pc, 0, 0)
         layout.addWidget(self.btn_switch, 0, 1)
         layout.addWidget(self.btn_quit, 0, 2)
+        interface_layout.addWidget(toolbar, -1, 0)
+
 
     print("OK 3")
+
+    def toolbar_button_clicked(self, s):
+        print("click", s)
+
     def ajoutePC(self):
         self.title.setText("Ajouter un PC(placeholder)")
         network.PC.name = QLabel("Entrez le nom du PC : ")
