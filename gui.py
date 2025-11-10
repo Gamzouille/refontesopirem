@@ -26,53 +26,36 @@ class HomeWindow(QMainWindow):
         interface_layout = QGridLayout()
         central.setLayout(interface_layout)
 
-        # --- Widgets ---
+        # --- Barre d'outils ---
         toolbar = QToolBar("Ma barre d'outil")
         self.addToolBar(toolbar)
 
-        # --- Boutons ---
+        # --- Barre de Menu ---
         menu = self.menuBar()
 
+        #-- menu fichier --
         file_menu = menu.addMenu("&📁 Fichier")
-        periph_menu = menu.addAction("& Périphériques")
-
         file_menu.addSeparator()
-
         file_submenu = file_menu.addMenu("Submenu")
-        #_submenu = periph_menu.addMenu("submenu")
+
+        #--- menu périphérique ---
+        periph_menu = menu.addMenu("&	🖧 Périphériques")
 
 
-
-        self.btn_pc = QPushButton("🖧 Ajouter un PC")
-        self.btn_switch = QPushButton("🖴 Ajouter un switch")
-        self.btn_quit = QPushButton("🗙 Quitter")
-        for btn in (self.btn_pc, self.btn_switch, self.btn_quit):
-            btn.setFixedHeight(40)
-            btn.setStyleSheet("""
-                        QPushButton {
-                            font-size: 16px;
-                            border-radius: 0px;
-                            background-color: #bdbdbd;
-                            color: black;
-                            padding: 5px;
-                        }
-                        QPushButton:hover {
-                            background-color: #808080;
-                        }
-                    """)
-        # vide
+        #--- Boutons ---
+        self.btn_pc = QAction("🖳 Ajouter un PC")
+        self.btn_switch = QAction("🖴 Ajouter un switch")
+        self.btn_quit = QAction("🗙 Quitter")
 
 
         print("OK 2")
         # --- Connexions boutons ---
-        self.btn_pc.clicked.connect(self.ajoutePC)
-        self.btn_switch.clicked.connect(self.ajouteSwitch)
-        self.btn_quit.clicked.connect(self.close)
+        periph_menu.addAction(self.btn_pc)
+        periph_menu.addAction(self.btn_switch)
 
-        # --- Contenu ---
-        layout.addWidget(self.btn_pc, 0, 0)
-        layout.addWidget(self.btn_switch, 0, 1)
-        layout.addWidget(self.btn_quit, 0, 2)
+
+        # --- Triggers ---
+        self.btn_pc.triggered.connect(self.ajoutePC)
 
 
     print("OK 3")
