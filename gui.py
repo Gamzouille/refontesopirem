@@ -1,4 +1,5 @@
 import sys
+from fileinput import close
 
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
@@ -26,9 +27,6 @@ class HomeWindow(QMainWindow):
         interface_layout = QGridLayout()
         central.setLayout(interface_layout)
 
-        # --- Barre d'outils ---
-        toolbar = QToolBar("Ma barre d'outil")
-        self.addToolBar(toolbar)
 
         # --- Barre de Menu ---
         menu = self.menuBar()
@@ -42,6 +40,11 @@ class HomeWindow(QMainWindow):
         periph_menu = menu.addMenu("&	🖧 Périphériques")
 
 
+        #--- Menu other ---
+        other_menu = menu.addMenu("⇪ Autres")
+
+
+
         #--- Boutons ---
         self.btn_pc = QAction("🖳 Ajouter un PC")
         self.btn_switch = QAction("🖴 Ajouter un switch")
@@ -52,11 +55,11 @@ class HomeWindow(QMainWindow):
         # --- Connexions boutons ---
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
-
+        other_menu.addAction(self.btn_quit)
 
         # --- Triggers ---
         self.btn_pc.triggered.connect(self.ajoutePC)
-
+        self.btn_quit.triggered.connect(self.close)
 
     print("OK 3")
 
