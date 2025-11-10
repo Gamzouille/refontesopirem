@@ -1,8 +1,9 @@
 import sys
 
-from PyQt6.QtGui import QAction
+from PyQt6.QtCore import QSize
+from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
-    QLineEdit, QToolBar
+    QLineEdit, QToolBar, QStatusBar, QCheckBox
 import json
 import network
 
@@ -28,13 +29,36 @@ class HomeWindow(QMainWindow):
 
         # --- Widgets ---
         toolbar = QToolBar("Ma barre d'outil")
+        toolbar.setIconSize(QSize(16, 16))
         self.addToolBar(toolbar)
 
         # --- Boutons ---
-        self.button_action = QAction("Your button", self)
+        self.button_action = QAction(QIcon("bug.png"), "&Your button", self)
         self.button_action.setStatusTip("This is your button")
         self.button_action.triggered.connect(self.toolbar_button_clicked)
+        self.button_action.setCheckable(True)
         toolbar.addAction(self.button_action)
+
+        toolbar.addSeparator()
+
+        button_action2 = QAction(QIcon("bug.png"), "Your &button2", self)
+        button_action2.setStatusTip("This is your button2")
+        button_action2.triggered.connect(self.toolbar_button_clicked)
+        button_action2.setCheckable(True)
+        toolbar.addAction(button_action2)
+
+        self.setStatusBar(QStatusBar(self))
+
+        menu = self.menuBar()
+
+        file_menu = menu.addMenu("&File")
+        file_menu.addAction(self.button_action)
+        file_menu.addSeparator()
+
+        file_submenu = file_menu.addMenu("Submenu")
+        file_submenu.addAction(button_action2)
+
+
         self.btn_pc = QPushButton("Ajouter un PC")
         self.btn_switch = QPushButton("Ajouter un switch")
         self.btn_quit = QPushButton("Quitter")
@@ -62,10 +86,11 @@ class HomeWindow(QMainWindow):
         self.btn_quit.clicked.connect(self.close)
 
         # --- Contenu ---
-        layout.addWidget(self.btn_pc, 0, 0)
-        layout.addWidget(self.btn_switch, 0, 1)
-        layout.addWidget(self.btn_quit, 0, 2)
+        toolbar.addWidget(self.btn_pc)
+        toolbar.addWidget(self.btn_switch)
+        toolbar.addWidget(self.btn_quit)
         interface_layout.addWidget(toolbar, -1, 0)
+
 
 
     print("OK 3")
