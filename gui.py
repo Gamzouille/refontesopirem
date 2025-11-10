@@ -31,28 +31,29 @@ class HomeWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         # --- Boutons ---
-        self.button_action = QAction("Your button", self)
+        # --- Boutons ---
+        self.button_action = QAction("📁 Fichier", self)
         self.button_action.setStatusTip("This is your button")
         self.button_action.triggered.connect(self.toolbar_button_clicked)
         toolbar.addAction(self.button_action)
-        self.btn_pc = QPushButton("Ajouter un PC")
-        self.btn_switch = QPushButton("Ajouter un switch")
-        self.btn_quit = QPushButton("Quitter")
+        self.btn_pc = QPushButton("🖧 Ajouter un PC")
+        self.btn_switch = QPushButton("🖴 Ajouter un switch")
+        self.btn_quit = QPushButton("🗙 Quitter")
         for btn in (self.btn_pc, self.btn_switch, self.btn_quit):
             btn.setFixedHeight(40)
             btn.setStyleSheet("""
-                QPushButton {
-                    font-size: 16px;
-                    border-radius: 12px;
-                    background-color: #738eb0;
-                    color: white;
-                    padding: 5px;
-                }
-                QPushButton:hover {
-                    background-color: #2e3947;
-                }
-            """)
-        #vide
+                        QPushButton {
+                            font-size: 16px;
+                            border-radius: 0px;
+                            background-color: #bdbdbd;
+                            color: black;
+                            padding: 5px;
+                        }
+                        QPushButton:hover {
+                            background-color: #808080;
+                        }
+                    """)
+        # vide
 
 
         print("OK 2")
