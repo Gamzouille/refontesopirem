@@ -65,11 +65,12 @@ class HomeWindow(QMainWindow):
 
 
     def ajoutePC(self):
-        self.title.setText("Ajouter un PC(placeholder)")
-        network.PC.name = QLabel("Entrez le nom du PC : ")
-        nom = QLineEdit()
-        network.PC.ip = QLabel("Entrez l'adresse IP du PC")
-        ip = QLineEdit()
+        ordi = network.liste_pc[0]
+        network.liste_pc.pop(0)
+
+
+    #def supprimerPC(self):
+
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
