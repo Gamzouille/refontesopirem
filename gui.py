@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPu
     QLineEdit, QToolBar
 import json
 import network
+from ui_nouveau_projet import ProjectWindow
 
 with open("scenario.json") as f:
     data = json.load(f)
@@ -34,18 +35,22 @@ class HomeWindow(QMainWindow):
         #-- menu fichier --
         file_menu = menu.addMenu("&📁 Fichier")
         file_menu.addSeparator()
-        file_submenu = file_menu.addMenu("Submenu")
 
         #--- menu périphérique ---
         periph_menu = menu.addMenu("&	🖧 Périphériques")
 
 
-        #--- Menu other ---
-        other_menu = menu.addMenu("⇪ Autres")
+        #--- Menu option ---
+        option_menu = menu.addMenu("⇪ Options")
 
 
 
         #--- Boutons ---
+        self.btn_new = QAction("Nouveau projet")
+        self.btn_open = QAction("Ouvrir")
+        self.btn_save = QAction("Enregistrer")
+        self.btn_resave = QAction("Enregistrer sous")
+
         self.btn_pc = QAction("🖳 Ajouter un PC")
         self.btn_switch = QAction("🖴 Ajouter un switch")
         self.btn_quit = QAction("🗙 Quitter")
@@ -53,11 +58,18 @@ class HomeWindow(QMainWindow):
 
         print("OK 2")
         # --- Connexions boutons ---
+        file_menu.addAction(self.btn_new)
+        file_menu.addAction(self.btn_open)
+        file_menu.addAction(self.btn_save)
+        file_menu.addAction(self.btn_resave)
+        file_menu.addAction(self.btn_quit)
+
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
-        other_menu.addAction(self.btn_quit)
+
 
         # --- Triggers ---
+        self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
         self.btn_quit.triggered.connect(self.close)
 
@@ -71,6 +83,10 @@ class HomeWindow(QMainWindow):
 
     #def supprimerPC(self):
 
+    def create_project(self):
+        self.project_window = ProjectWindow()
+        self.project_window.show()
+        self.close()
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
