@@ -12,7 +12,7 @@ with open("scenario.json") as f:
 print("OK 1")
 
 class HomeWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, button_action2=None):
         super().__init__()
         self.setWindowTitle("Sopirem")
         self.setMinimumSize(800, 600)
@@ -31,11 +31,18 @@ class HomeWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         # --- Boutons ---
-        # --- Boutons ---
-        self.button_action = QAction("📁 Fichier", self)
-        self.button_action.setStatusTip("This is your button")
-        self.button_action.triggered.connect(self.toolbar_button_clicked)
-        toolbar.addAction(self.button_action)
+        menu = self.menuBar()
+
+        file_menu = menu.addMenu("&📁 Fichier")
+        periph_menu = menu.addAction("& Périphériques")
+
+        file_menu.addSeparator()
+
+        file_submenu = file_menu.addMenu("Submenu")
+        #_submenu = periph_menu.addMenu("submenu")
+
+
+
         self.btn_pc = QPushButton("🖧 Ajouter un PC")
         self.btn_switch = QPushButton("🖴 Ajouter un switch")
         self.btn_quit = QPushButton("🗙 Quitter")
@@ -66,13 +73,10 @@ class HomeWindow(QMainWindow):
         layout.addWidget(self.btn_pc, 0, 0)
         layout.addWidget(self.btn_switch, 0, 1)
         layout.addWidget(self.btn_quit, 0, 2)
-        interface_layout.addWidget(toolbar, -1, 0)
 
 
     print("OK 3")
 
-    def toolbar_button_clicked(self, s):
-        print("click", s)
 
     def ajoutePC(self):
         self.title.setText("Ajouter un PC(placeholder)")
