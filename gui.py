@@ -1,7 +1,7 @@
 import sys
 from fileinput import close
 
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QColor, QPalette, QAction
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
     QLineEdit, QToolBar
 import json
@@ -18,7 +18,12 @@ class HomeWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Sopirem")
         self.setMinimumSize(800, 600)
-        # --- Titre ---
+        # --- Background ---
+
+
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("White"))
+        self.setPalette(palette)
 
         # --- Contenu principal ---
         central = QWidget()
@@ -31,6 +36,28 @@ class HomeWindow(QMainWindow):
 
         # --- Barre de Menu ---
         menu = self.menuBar()
+        self.menuBar().setStyleSheet("""
+            QMenuBar {
+                background-color: rgb(49, 49, 49);
+                color: rgb(255, 255, 255);
+                border: 1px solid #000;
+            }
+            QMenuBar::item {
+                background-color: rgb(49, 49, 49);
+                color: rgb(255, 255, 255);
+            }
+            QMenuBar::item::selected {
+                background-color: rgb(30, 30, 30);
+            }
+            QMenu {
+                background-color: rgb(49, 49, 49);
+                color: rgb(255, 255, 255);
+                border: 1px solid #000;
+            }
+            QMenu::item::selected {
+                background-color: rgb(30, 30, 30);
+            }
+        """)
 
         #-- menu fichier --
         file_menu = menu.addMenu("&📁 Fichier")
