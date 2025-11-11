@@ -1,7 +1,7 @@
 import sys
 from fileinput import close
 
-from PyQt6.QtGui import QColor, QPalette, QAction
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
     QLineEdit, QToolBar
 import json
@@ -106,7 +106,12 @@ class HomeWindow(QMainWindow):
     def ajoutePC(self):
         ordi = network.liste_pc[0]
         network.liste_pc.pop(0)
-
+        btn_pc_icon = QPushButton()
+        pixmap = QPixmap("image/pc_icon.png")
+        icon = (QIcon(pixmap))
+        btn_pc_icon.setIcon(icon)
+        btn_pc_icon.setIconSize(pixmap.rect().size())
+        btn_pc_icon.show
 
     #def supprimerPC(self):
 
