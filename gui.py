@@ -1,6 +1,5 @@
 import sys
 from fileinput import close
-
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QGridLayout, \
     QLineEdit, QToolBar
@@ -111,7 +110,7 @@ class HomeWindow(QMainWindow):
         icon = (QIcon(pixmap))
         btn_pc_icon.setIcon(icon)
         btn_pc_icon.setIconSize(pixmap.rect().size())
-        btn_pc_icon.show
+        layout.addWidget(btn_pc_icon)
 
     #def supprimerPC(self):
 
