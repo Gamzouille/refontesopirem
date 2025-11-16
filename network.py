@@ -70,6 +70,13 @@ class Switch:
 
 
 class PC:
+
+    def __new__(cls, name, ip, mac):
+        print("Création d'un nouvel objet PC")
+        instance = super(PC, cls).__new__(cls)
+        return instance
+
+
     def __init__(self, name, ip, mac):
         self.name = name
         self.ip = ip
@@ -174,6 +181,14 @@ if __name__ == "__main__":
     # Créer deux PCs et les connecter directement
     pc1 = PC("PC1", "192.168.1.1", "AA:BB:CC:DD:EE:01")
     pc2 = PC("PC2", "192.168.1.2", "AA:BB:CC:DD:EE:02")
+    pc3 = PC("PC3", "192.168.1.3", "AA:BB:CC:DD:EE:03")
+    pc4 = PC("PC4", "192.168.1.4", "AA:BB:CC:DD:EE:04")
+    pc5 = PC("PC5", "192.168.1.5", "AA:BB:CC:DD:EE:05")
+    pc6 = PC("PC6", "192.168.1.6", "AA:BB:CC:DD:EE:06")
+    pc7 = PC("PC7", "192.168.1.7", "AA:BB:CC:DD:EE:07")
+    pc8 = PC("PC8", "192.168.1.8", "AA:BB:CC:DD:EE:08")
+
+    liste_pc = [pc1,pc2, pc3, pc4, pc5, pc6, pc7, pc8]
 
     # --- Exemple avec switch et ports ---
     switch1 = Switch("SW1", nb_ports=4)  # switch avec 4 ports
