@@ -1,0 +1,16 @@
+{
+    "Pc": [
+        {
+            "nom": "Serveur",
+            "ip": "192.168.1.10",
+            "mac": "AA:BB:CC:DD:EE:01",
+            "_var_name": "pc1"
+        },
+        {
+            "nom": "Bureau",
+            "ip": "192.168.1.11",
+            "mac": "AA:BB:CC:DD:EE:02",
+            "_var_name": "pc2"
+        }
+    ]
+}
