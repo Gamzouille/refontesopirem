@@ -90,8 +90,21 @@ class HomeWindow(QMainWindow):
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
         self.btn_quit.triggered.connect(self.close)
-
+        self.btn_save.triggered.connect(self.save)
     print("OK 3")
+
+    def save(self):
+        fichier, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer un fichier",
+            "",
+            "Fichiers texte (*.txt);;Fichiers CSV (*.csv);;Tous les fichiers (*)"
+        )
+        if fichier:
+            # Ici, vous pouvez écrire les données dans le fichier sélectionné
+            with open(fichier, 'w', encoding='utf-8') as f:
+                f.write("Contenu à enregistrer\n")
+            print(f"Fichier enregistré sous : {fichier}")
 
 
     def ajoutePC(self):
