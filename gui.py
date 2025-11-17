@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog
 import json
 import network
 from ui_nouveau_projet import ProjectWindow
@@ -91,6 +91,7 @@ class HomeWindow(QMainWindow):
         self.btn_pc.triggered.connect(self.ajoutePC)
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
+        self.btn_open.triggered.connect(self.open_file_dialog)
     print("OK 3")
 
     def save(self):
@@ -117,6 +118,16 @@ class HomeWindow(QMainWindow):
         self.resize(pixmap.width(), pixmap.height())
 
     #def supprimerPC(self):
+
+    def open_file_dialog(self):
+        file_dialog = QFileDialog(self)
+        file_dialog.setWindowTitle("Ouvrir un fichier")
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
+
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            print("Fichier séléctionné:", selected_files[0])
 
     def create_project(self):
         self.project_window = ProjectWindow()
