@@ -89,6 +89,7 @@ class HomeWindow(QMainWindow):
         # --- Triggers ---
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
+        self.btn_switch.triggered.connect(self.ajouteSwitch)
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
@@ -139,8 +140,14 @@ class HomeWindow(QMainWindow):
         self.close()
 
     def ajouteSwitch(self):
-        self.title.setText("Ajouter un switch(placeholder)")
-        network.Switch.name = input("Entrez le nom du Switch")
+        print("Je rentre bien ici")
+
+        label = QLabel(self)
+        pixmap = QPixmap("images/switch_icon.png")
+        label.setPixmap(pixmap)
+        self.setCentralWidget(label)
+        self.resize(pixmap.width(), pixmap.height())
+
 print("OK 4")
 def run_app():
     app = QApplication(sys.argv)
