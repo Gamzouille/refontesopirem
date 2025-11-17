@@ -28,8 +28,6 @@ class HomeWindow(QMainWindow):
         # --- Contenu principal ---
         central = QWidget()
         self.setCentralWidget(central)
-        layout = QGridLayout()
-        central.setLayout(layout)
         interface_layout = QGridLayout()
         central.setLayout(interface_layout)
 
@@ -99,6 +97,7 @@ class HomeWindow(QMainWindow):
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
         self.btn_quit.triggered.connect(self.close)
+        self.btn_save.triggered.connect(self.save)
 
     print("OK 3")
 
@@ -117,6 +116,25 @@ class HomeWindow(QMainWindow):
         self.project_window = ProjectWindow()
         self.project_window.show()
         self.close()
+
+
+    def save(self):
+        fichier, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer un fichier",
+            "",
+            "Fichiers texte (*.txt);;Fichiers CSV (*.csv);;Tous les fichiers (*)"
+        )
+        if fichier:
+            # Exemple : écrire du texte dans le fichier
+            contenu = "Données à enregistrer\n"
+            try:
+                with open(fichier, 'w', encoding='utf-8') as f:
+                    f.write(contenu)
+                print(f"Fichier enregistré sous : {fichier}")
+            except Exception as e:
+                print(f"Erreur lors de l'enregistrement : {e}")
+
 
     def ajouteSwitch(self):
         self.title.setText("Ajouter un switch(placeholder)")
