@@ -70,6 +70,13 @@ class Switch:
 
 
 class PC:
+
+    def __new__(cls, name, ip, mac):
+        print("Création d'un nouvel objet PC")
+        instance = super(PC, cls).__new__(cls)
+        return instance
+
+
     def __init__(self, name, ip, mac):
         self.name = name
         self.ip = ip
@@ -144,16 +151,6 @@ class PC:
         else:
             return f"{self.name} : Impossible d'atteindre {target_ip}"
 
-        if mac and pc:
-            trame_ping = Trame(self.ip, pc.ip, self.mac, pc.mac, type_trame="ICMP")
-            self.trames_envoyees.append(trame_ping)
-            print(f"[{self.name}] Envoi {trame_ping}")
-            if self.switch:
-                self.switch.receive_trame(trame_ping, self.switch_port)
-            return f"{self.name} → {pc.name} : Ping OK"
-        else:
-            return f"{self.name} : Impossible d'atteindre {target_ip}"
-
     def show_arp_cache(self):
         return f"Cache ARP {self.name} : {self.arp_table}"
 
@@ -168,12 +165,15 @@ class PC:
         self.arp_table.table.clear()
         print(f"[{self.name}] Cache arp vidé.")
 
+    def affiche_ip(self):
+        return f"{self.ip}"
+
+    def affiche_mac(self, mac):
+        return f"{self.ip}"
 
 if __name__ == "__main__":
     import code
-    # Créer deux PCs et les connecter directement
-    pc1 = PC("PC1", "192.168.1.1", "AA:BB:CC:DD:EE:01")
-    pc2 = PC("PC2", "192.168.1.2", "AA:BB:CC:DD:EE:02")
+
 
     # --- Exemple avec switch et ports ---
     switch1 = Switch("SW1", nb_ports=4)  # switch avec 4 ports
@@ -188,6 +188,7 @@ if __name__ == "__main__":
     print("  pc2.show_arp_cache()")
     print("  pc2.ping('192.168.1.1')")
     print("  pc2.voir_trames()")
+    print("pc1.affiche_ip()")
     print("  switch1.show_mac_table()  # pour voir la table mac du switch")
     print("  switch1.empty_mac_table()  # pour vider la table mac du switch")
     print("  pc1.empty_arp_table()  # pour vider le cache arp d'un pc")
