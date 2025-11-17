@@ -99,7 +99,7 @@ class HomeWindow(QMainWindow):
             self,
             "Enregistrer un fichier",
             "",
-            "Fichiers texte (*.txt);;Fichiers CSV (*.csv);;Tous les fichiers (*)"
+            "Fichiers texte (*.txt);;Fichiers CSV (*.csv);;Fichiers JSON (*.json);;Tous les fichiers (*)"
         )
         if fichier:
             # Ici, vous pouvez écrire les données dans le fichier sélectionné
