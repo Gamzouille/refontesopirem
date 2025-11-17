@@ -120,8 +120,12 @@ class HomeWindow(QMainWindow):
     #def supprimerPC(self):
 
     def open_file_dialog(self):
-        file_dialog = QFileDialog(self)
-        file_dialog.setWindowTitle("Ouvrir un fichier")
+        file_dialog = QFileDialog.getSaveFileName(
+            self,
+            "Ouvrir un fichier",
+            "",
+            "Fichiers JSON (*.json)"
+        )
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
         file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
 
