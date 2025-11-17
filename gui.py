@@ -104,14 +104,12 @@ class HomeWindow(QMainWindow):
 
 
     def ajoutePC(self):
-        ordi = network.liste_pc[0]
-        network.liste_pc.pop(0)
         btn_pc_icon = QPushButton()
         pixmap = QPixmap("image/pc_icon.png")
         icon = (QIcon(pixmap))
         btn_pc_icon.setIcon(icon)
         btn_pc_icon.setIconSize(pixmap.rect().size())
-        layout.addWidget(btn_pc_icon)
+        self.layout.addWidget(btn_pc_icon)
 
     #def supprimerPC(self):
 
