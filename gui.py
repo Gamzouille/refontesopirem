@@ -1,3 +1,4 @@
+import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog
@@ -121,18 +122,17 @@ class HomeWindow(QMainWindow):
     #def supprimerPC(self):
 
     def open_file_dialog(self):
-        file_dialog = QFileDialog.getSaveFileName(
-            self,
-            "Ouvrir un fichier",
-            "",
-            "Fichiers JSON (*.json)"
+        file_filter = 'Data File (*.json)'
+        response = QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Open file",
+            directory=os.getcwd(),
+            filter=file_filter,
+            initialFilter=file_filter,
         )
-        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-        file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
-
-        if file_dialog.exec():
-            selected_files = file_dialog.selectedFiles()
-            print("Fichier séléctionné:", selected_files[0])
+        if response[0]:
+            with open(response[0], 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
     def create_project(self):
         self.project_window = ProjectWindow()
