@@ -1,10 +1,12 @@
 import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, \
+    QListWidget, QComboBox
 import json
 import network
 from ui_nouveau_projet import ProjectWindow
+from form_pc import PcWindow
 
 with open("scenario.json") as f:
     data = json.load(f)
@@ -118,8 +120,13 @@ class HomeWindow(QMainWindow):
         label.setPixmap(pixmap)
         self.setCentralWidget(label)
         self.resize(pixmap.width(), pixmap.height())
+        self.formPC()
 
-    #def supprimerPC(self):
+    def formPC(self):
+        self.form_window = PcWindow()
+        self.form_window.show()
+
+        #def supprimerPC(self):
 
     def open_file_dialog(self):
         file_filter = 'Data File (*.json)'
