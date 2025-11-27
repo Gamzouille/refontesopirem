@@ -6,8 +6,8 @@ from classes.pc import Pc
 
 # ------------------------
 # Importation des fonctions
-from fonctions.sauvegarde import sauvegarde_pc
-from fonctions.lecture import lecture_pcs
+from fonctions.sauvegarde import sauvegarde_json
+from fonctions.lecture import lecture_json
 # ------------------------
 
 # ------------------------
@@ -27,14 +27,14 @@ JSON_FILE = "structure/sauvegardes/test.json"
 pc1 = Pc("Serveur", "192.168.1.10", "AA:BB:CC:DD:EE:01")
 pc2 = Pc("Bureau", "192.168.1.11", "AA:BB:CC:DD:EE:02")
 
-sauvegarde_pc(pc1, JSON_FILE, "pc1")
-sauvegarde_pc(pc2, JSON_FILE, "pc2")
+sauvegarde_json(pc1, JSON_FILE, "pc1")
+sauvegarde_json(pc2, JSON_FILE, "pc2")
 # ------------------------
 
 
 # ------------------------
 # Lecture et utilisation
-pcs = lecture_pcs(JSON_FILE)
+pcs = lecture_json(JSON_FILE)
 
 print(pcs["pc1"].ip)
 print(pcs["pc2"].mac)
