@@ -6,6 +6,7 @@ import json
 import network
 from ui_nouveau_projet import ProjectWindow
 from form_pc import PcWindow
+from form_switch import SwitchWindow
 
 with open("scenario.json") as f:
     data = json.load(f)
@@ -121,9 +122,23 @@ class HomeWindow(QMainWindow):
         self.resize(pixmap.width(), pixmap.height())
         self.formPC()
 
+    def ajouteSwitch(self):
+        print("Je rentre bien ici")
+
+        label = QLabel(self)
+        pixmap = QPixmap("images/switch_icon.png")
+        label.setPixmap(pixmap)
+        self.setCentralWidget(label)
+        self.resize(pixmap.width(), pixmap.height())
+        self.formSwitch()
+
     def formPC(self):
-        self.form_window = PcWindow()
-        self.form_window.show()
+        self.formpc_window = PcWindow()
+        self.formpc_window.show()
+
+    def formSwitch(self):
+        self.forms_window = SwitchWindow()
+        self.forms_window.show()
 
         #def supprimerPC(self):
 
@@ -145,14 +160,6 @@ class HomeWindow(QMainWindow):
         self.project_window.show()
         self.close()
 
-    def ajouteSwitch(self):
-        print("Je rentre bien ici")
-
-        label = QLabel(self)
-        pixmap = QPixmap("images/switch_icon.png")
-        label.setPixmap(pixmap)
-        self.setCentralWidget(label)
-        self.resize(pixmap.width(), pixmap.height())
 
 print("OK 4")
 def run_app():
