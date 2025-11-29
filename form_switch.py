@@ -16,7 +16,7 @@ class SwitchWindow(QMainWindow):
         central.setLayout(layout)
 
         # --- Widgets ---
-        widgets = [QLabel("Nom"), QLineEdit(), QLabel("Nombre de ports"), QSlider]
+        widgets = [QLabel("Nom"), QLineEdit(), QLabel("Nombre de ports"), QSlider(Qt.Orientation.Horizontal)]
         for w in widgets:
             w.show()
 

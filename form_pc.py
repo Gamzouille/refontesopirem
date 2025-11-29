@@ -16,7 +16,7 @@ class PcWindow(QMainWindow):
         central.setLayout(layout)
 
         # --- Widgets ---
-        widgets = [QLabel("Adresse IP"), QLineEdit(), ]
+        widgets = [QLabel("Nom"), QLineEdit(), QLabel("Adresse IP"), QLineEdit(), QLabel("Adresse MAC"), QLineEdit()]
         for w in widgets:
             w.show()
 

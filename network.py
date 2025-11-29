@@ -26,6 +26,12 @@ class Trame:
 
 
 class Switch:
+
+    def __new__(cls, nom, nb_ports=4):
+        print("Création d'un nouvel objet Switch")
+        instance = super(Switch, cls).__new__(cls)
+        return instance
+
     def __init__(self, nom, nb_ports=4):
         self.nom = nom
         self.ports = {i: None for i in range(1, nb_ports + 1)}  # ports vides
