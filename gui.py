@@ -70,10 +70,10 @@ class HomeWindow(QMainWindow):
         file_menu.addSeparator()
 
         # --- menu périphérique ---
-        periph_menu = menu.addMenu("&🖧 Périphériques")
+        periph_menu = menu.addMenu("& Périphériques")
 
         # --- Menu options ---
-        option_menu = menu.addMenu("⇪ Options")
+        option_menu = menu.addMenu(" Options")
 
         # --- Actions ---
         self.btn_new = QAction("Nouveau projet")
@@ -81,10 +81,11 @@ class HomeWindow(QMainWindow):
         self.btn_save = QAction("Enregistrer")
         self.btn_resave = QAction("Enregistrer sous")
 
-        self.btn_pc = QAction("🖳 Ajouter un PC")
-        self.btn_switch = QAction("🖴 Ajouter un switch")
-        self.btn_quit = QAction("🗙 Quitter")
-
+        self.btn_pc = QAction(" Ajouter un PC")
+        self.btn_switch = QAction(" Ajouter un switch")
+        self.btn_quit = QAction(" Quitter")
+        self.btn_wire = QAction(" Ajouter un câble")
+        
         # --- Ajout des actions ---
         file_menu.addAction(self.btn_new)
         file_menu.addAction(self.btn_open)
@@ -94,6 +95,7 @@ class HomeWindow(QMainWindow):
 
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
+        periph_menu.addAction(self.btn_wire)
 
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
