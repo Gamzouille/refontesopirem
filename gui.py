@@ -20,10 +20,6 @@ class HomeWindow(QMainWindow):
         self.setWindowTitle("Sopirem")
         self.setMinimumSize(800, 600)
 
-        # --- Stockage des objets ---
-        self.pc_objects = []
-        self.switch_objects = []
-
         # --- Background ---
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.Window, QColor("White"))
