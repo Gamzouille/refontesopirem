@@ -44,8 +44,8 @@ class SwitchWindow(QMainWindow):
             layout.addWidget(w)
 
     def validation(self):
-        print("okok")
+        print("Validé")
         self.nom.text = Switch(self.nom.text(), self.ports.text())
-        print("okkkkk")
+        print("Création du switch réussie")
         self.nom.text.show()
         self.window().close()

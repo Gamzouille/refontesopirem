@@ -46,8 +46,8 @@ class PcWindow(QMainWindow):
             layout.addWidget(w)
 
     def validation(self):
-        print("okok")
+        print("Validé")
         self.mac.text = PC(self.nom.text(), self.ip.text(), self.mac.text())
-        print("okkkkk")
+        print("Création du pc réussie")
         self.mac.text.show()
         self.window().close()
