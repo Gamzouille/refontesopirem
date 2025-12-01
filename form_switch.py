@@ -37,9 +37,6 @@ class SwitchWindow(QMainWindow):
             w.show()
 
         # --- Placeholder ---
-        label = QLabel(" ")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 20px; color: #555;")
         for w in widgets:
             layout.addWidget(w)
 
