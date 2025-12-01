@@ -124,13 +124,9 @@ class HomeWindow(QMainWindow):
 
         item = MovablePixmapItem(pixmap)
         self.scene.addItem(item)
-
-        # Tu peux définir la position initiale si tu veux
         item.setPos(50, 50)
-
-        # Ouvrir la fenêtre du formulaire
         self.formPC()
-
+        item.setScale(0.5)
         
         
         
@@ -146,7 +142,7 @@ class HomeWindow(QMainWindow):
         item.setPos(100, 100)
 
         self.formSwitch()
-
+        item.setScale(1.25)
 
     def formPC(self):
         self.formpc_window = PcWindow()
