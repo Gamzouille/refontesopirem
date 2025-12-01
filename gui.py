@@ -84,7 +84,7 @@ class HomeWindow(QMainWindow):
         self.btn_pc = QAction(" Ajouter un PC")
         self.btn_switch = QAction(" Ajouter un switch")
         self.btn_quit = QAction(" Quitter")
-        self.btn_wire = QAction(" Ajouter un câble")
+        self.btn_connect = QAction(" Connecter")
         
         # --- Ajout des actions ---
         file_menu.addAction(self.btn_new)
@@ -95,7 +95,7 @@ class HomeWindow(QMainWindow):
 
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
-        periph_menu.addAction(self.btn_wire)
+        periph_menu.addAction(self.btn_connect)
 
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
