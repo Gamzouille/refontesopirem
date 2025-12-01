@@ -1,7 +1,7 @@
 import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem
 import json
 import network
 from ui_nouveau_projet import ProjectWindow
@@ -30,45 +30,52 @@ class HomeWindow(QMainWindow):
         layout = QGridLayout()
         central.setLayout(layout)
 
+        # --- Zone graphique déplaçable ---
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        layout.addWidget(self.view)
+        self.scene.setBackgroundBrush(QColor("white"))
+        self.view.setStyleSheet("background: white;")
+
+
         # --- Barre de Menu ---
         menu = self.menuBar()
         self.menuBar().setStyleSheet("""
-            QMenuBar {
-                background-color: rgb(49, 49, 49);
-                color: rgb(255, 255, 255);
-                border: 1px solid #000;
-            }
-            QMenuBar::item {
-                background-color: rgb(49, 49, 49);
-                color: rgb(255, 255, 255);
-            }
-            QMenuBar::item::selected {
-                background-color: rgb(30, 30, 30);
-            }
-            QMenu {
-                background-color: rgb(49, 49, 49);
-                color: rgb(255, 255, 255);
-                border: 1px solid #000;
-            }
-            QMenu::item::selected {
-                background-color: rgb(30, 30, 30);
-            }
-        """)
+        QMenuBar {
+            background-color: white;
+            color: black;
+            border: 1px solid #ddd;
+        }
+        QMenuBar::item {
+            background-color: white;
+            color: black;
+        }
+        QMenuBar::item:selected {
+            background-color: #f0f0f0;
+            color: black;
+        }
+        QMenu {
+            background-color: white;
+            color: black;
+            border: 1px solid #ddd;
+        }
+        QMenu::item:selected {
+            background-color: #f0f0f0;
+            color: black;
+        }
+""")
 
-        print("J'instancie le menu")
-
-        #-- menu fichier --
+        # -- menu fichier --
         file_menu = menu.addMenu("&📁 Fichier")
         file_menu.addSeparator()
 
-        #--- menu périphérique ---
-        periph_menu = menu.addMenu("&	🖧 Périphériques")
+        # --- menu périphérique ---
+        periph_menu = menu.addMenu("&🖧 Périphériques")
 
-
-        #--- Menu option ---
+        # --- Menu options ---
         option_menu = menu.addMenu("⇪ Options")
 
-        #--- Boutons ---
+        # --- Actions ---
         self.btn_new = QAction("Nouveau projet")
         self.btn_open = QAction("Ouvrir")
         self.btn_save = QAction("Enregistrer")
@@ -78,8 +85,7 @@ class HomeWindow(QMainWindow):
         self.btn_switch = QAction("🖴 Ajouter un switch")
         self.btn_quit = QAction("🗙 Quitter")
 
-        print("OK 2")
-        # --- Connexions boutons ---
+        # --- Ajout des actions ---
         file_menu.addAction(self.btn_new)
         file_menu.addAction(self.btn_open)
         file_menu.addAction(self.btn_save)
@@ -89,14 +95,13 @@ class HomeWindow(QMainWindow):
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
 
-        # --- Triggers ---
+        # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
         self.btn_switch.triggered.connect(self.ajouteSwitch)
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
-    print("OK 3")
 
     def save(self):
         fichier, _ = QFileDialog.getSaveFileName(
@@ -115,22 +120,33 @@ class HomeWindow(QMainWindow):
     def ajoutePC(self):
         print("Je rentre bien ici")
 
-        label = QLabel(self)
         pixmap = QPixmap("images/pc_icon.png")
-        label.setPixmap(pixmap)
-        self.setCentralWidget(label)
-        self.resize(pixmap.width(), pixmap.height())
+
+        item = MovablePixmapItem(pixmap)
+        self.scene.addItem(item)
+
+        # Tu peux définir la position initiale si tu veux
+        item.setPos(50, 50)
+
+        # Ouvrir la fenêtre du formulaire
         self.formPC()
+
+        
+        
+        
 
     def ajouteSwitch(self):
         print("Je rentre bien ici")
 
-        label = QLabel(self)
         pixmap = QPixmap("images/switch_icon.png")
-        label.setPixmap(pixmap)
-        self.setCentralWidget(label)
-        self.resize(pixmap.width(), pixmap.height())
+
+        item = MovablePixmapItem(pixmap)
+        self.scene.addItem(item)
+
+        item.setPos(100, 100)
+
         self.formSwitch()
+
 
     def formPC(self):
         self.formpc_window = PcWindow()
@@ -159,6 +175,15 @@ class HomeWindow(QMainWindow):
         self.project_window = ProjectWindow()
         self.project_window.show()
         self.close()
+
+class MovablePixmapItem(QGraphicsPixmapItem):
+    def __init__(self, pixmap):
+        super().__init__(pixmap)
+        self.setFlags(
+            QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
+            QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
+            QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
+        )
 
 
 print("OK 4")
