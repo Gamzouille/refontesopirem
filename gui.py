@@ -7,6 +7,7 @@ import network
 from ui_nouveau_projet import ProjectWindow
 from form_pc import PcWindow
 from form_switch import SwitchWindow
+from fonctions.sauvegarde import sauvegarde_json
 
 with open("scenario.json") as f:
     data = json.load(f)
@@ -18,6 +19,10 @@ class HomeWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Sopirem")
         self.setMinimumSize(800, 600)
+
+        # --- Stockage des objets ---
+        self.pc_objects = []
+        self.switch_objects = []
 
         # --- Background ---
         palette = self.palette()
@@ -110,6 +115,8 @@ class HomeWindow(QMainWindow):
             with open(fichier, 'w', encoding='utf-8') as f:
                 f.write("Contenu à enregistrer\n")
             print(f"Fichier enregistré sous : {fichier}")
+
+            
 
 
     def ajoutePC(self):
