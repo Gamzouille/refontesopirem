@@ -72,6 +72,8 @@ class Switch:
         """Vide complètement la table MAC du switch."""
         self.mac_table.clear()
         print(f"[{self.nom}] Table MAC vidée.")
+    def show(self):
+        print(f"{self.nom}, {self.nb_ports}")
 
 
 
@@ -176,6 +178,8 @@ class PC:
 
     def affiche_mac(self, mac):
         return f"{self.ip}"
+    def show(self):
+        print(f"{self.name}, {self.ip}, {self.mac}")
 
 if __name__ == "__main__":
     import code

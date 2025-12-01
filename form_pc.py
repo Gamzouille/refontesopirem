@@ -1,6 +1,7 @@
 from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QRegularExpression
+from network import PC
 
 
 class PcWindow(QMainWindow):
@@ -46,3 +47,7 @@ class PcWindow(QMainWindow):
 
     def validation(self):
         print("okok")
+        self.mac.text = PC(self.nom.text(), self.ip.text(), self.mac.text())
+        print("okkkkk")
+        self.mac.text.show()
+        self.window().close()
