@@ -200,7 +200,7 @@ class HomeWindow(QMainWindow):
         
     def connecter(self):
         if len(self.devices) < 2:
-            return  # pas assez d'appareils
+            return
 
         win = ConnectWindow(self.devices, self)
         if win.exec() == QDialog.DialogCode.Accepted:
@@ -210,9 +210,8 @@ class HomeWindow(QMainWindow):
                 self.scene.addItem(cable)
                 self.cables.append(cable)
 
-            # Mettre à jour la ligne quand on bouge les appareils
-                d1.installSceneEventFilter(self)
-                d2.installSceneEventFilter(self)
+
+
 
 
 
@@ -224,6 +223,13 @@ class MovablePixmapItem(QGraphicsPixmapItem):
             QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
             QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
         )
+        self.cables = []
+
+    def itemChange(self, change, value):
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
+            for cable in self.cables:
+                cable.update_position()
+        return super().itemChange(change, value)
 
 
 class Cable(QGraphicsLineItem):
@@ -234,12 +240,20 @@ class Cable(QGraphicsLineItem):
         pen = QPen(QColor("black"))
         pen.setWidth(2)
         self.setPen(pen)
+
+        # Ajouter le câble aux périphériques
+        self.item1.cables.append(self)
+        self.item2.cables.append(self)
+
         self.update_position()
 
     def update_position(self):
+        if self.scene() is None:
+            return
         p1 = self.item1.sceneBoundingRect().center()
         p2 = self.item2.sceneBoundingRect().center()
         self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
+
 
 
 class ConnectWindow(QDialog):
@@ -274,6 +288,13 @@ class ConnectWindow(QDialog):
         d1 = self.combo1.currentData()
         d2 = self.combo2.currentData()
         return d1, d2
+
+
+class OptionWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Options")
+        self.setMinimumSize(300, 200)
 
 print("OK 4")
 def run_app():
