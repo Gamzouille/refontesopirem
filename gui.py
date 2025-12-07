@@ -192,6 +192,10 @@ class HomeWindow(QMainWindow):
         self.project_window = ProjectWindow()
         self.project_window.show()
         self.close()
+
+    def options_periph(self):
+        self.option_window = OptionWindow()
+        self.option_window.show()
         
         
     def connecter(self):
