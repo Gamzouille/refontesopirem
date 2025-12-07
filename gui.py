@@ -1,7 +1,7 @@
 import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout
 import json
 import network
 from ui_nouveau_projet import ProjectWindow
@@ -241,7 +241,6 @@ class Cable(QGraphicsLineItem):
         p2 = self.item2.sceneBoundingRect().center()
         self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox
 
 class ConnectWindow(QDialog):
     def __init__(self, devices, parent=None):
