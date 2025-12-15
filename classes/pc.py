@@ -1,6 +1,6 @@
-from arptable import ARPTable
-from switch import Switch
-from trame import Trame
+from classes.arptable import ARPTable
+from classes.switch import Switch
+from classes.trame import Trame
 
 class PC:
 
@@ -103,6 +103,8 @@ class PC:
 
     def affiche_mac(self, mac):
         return f"{self.ip}"
+    
+    
 
 if __name__ == "__main__":
     import code

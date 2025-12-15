@@ -110,10 +110,12 @@ class HomeWindow(QMainWindow):
 
     # --- Actions boutons ---
     def create_project(self):
-        """Ouvre la fenêtre du nouveau projet"""
-        self.project_window = ProjectWindow()
+        """Ouvre la fenêtre principale du projet (gui.py) et ferme ui_home"""
+        from gui import HomeWindow as GuiHomeWindow  # Import local pour éviter les boucles
+        self.project_window = GuiHomeWindow()
         self.project_window.show()
         self.close()
+
 
     def import_project(self):
         self.title.setText("Importation d’un projet (placeholder)")

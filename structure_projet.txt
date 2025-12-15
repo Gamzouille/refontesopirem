@@ -1,0 +1,25 @@
+soupirame/
+├── .gitignore
+├── README.md
+├── classes
+│   ├── arptable.py
+│   ├── pc.py
+│   ├── switch.py
+│   └── trame.py
+├── fonctions
+│   ├── lecture.py
+│   └── sauvegarde.py
+├── form_pc.py
+├── form_switch.py
+├── gui.py
+├── images
+│   ├── pc_icon.png
+│   └── switch_icon.png
+├── main.py
+├── network.py
+├── option_window.py
+├── sauvegardes
+│   └── test.json
+├── scenario.json
+├── structure-maker.py
+└── ui_home.py

@@ -7,7 +7,16 @@ import network
 from ui_nouveau_projet import ProjectWindow
 from form_pc import PcWindow
 from form_switch import SwitchWindow
+
+# Import fonctions
 from fonctions.sauvegarde import sauvegarde_json
+
+# Import classes
+from classes.pc import PC
+from classes.arptable import ARPTable
+from classes.switch import Switch
+from classes.trame import Trame
+
 
 with open("scenario.json") as f:
     data = json.load(f)
@@ -124,15 +133,27 @@ class HomeWindow(QMainWindow):
     def save(self):
         fichier, _ = QFileDialog.getSaveFileName(
             self,
-            "Enregistrer un fichier",
+            "Enregistrer",
             "",
             "Fichiers JSON (*.json)"
         )
-        if fichier:
-            # Ici, vous pouvez écrire les données dans le fichier sélectionné
-            with open(fichier, 'w', encoding='utf-8') as f:
-                f.write("Contenu à enregistrer\n")
-            print(f"Fichier enregistré sous : {fichier}")
+
+        if not fichier:
+            return
+
+        data = {
+            "PC": []
+        }
+
+        for i, item in enumerate(self.devices):
+            if hasattr(item, "pc"):
+                data["PC"].append(item.pc.to_dict())
+
+        with open(fichier, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+
+        print("✅ Projet sauvegardé")
+
 
             
 
