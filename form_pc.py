@@ -1,6 +1,7 @@
 from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QRegularExpression
+from network import PC
 
 
 class PcWindow(QMainWindow):
@@ -38,11 +39,12 @@ class PcWindow(QMainWindow):
             w.show()
 
         # --- Placeholder ---
-        label = QLabel(" ")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 20px; color: #555;")
         for w in widgets:
             layout.addWidget(w)
 
     def validation(self):
-        print("okok")
+        print("Validé")
+        self.mac.text = PC(self.nom.text(), self.ip.text(), self.mac.text())
+        print("Création du pc réussie")
+        self.mac.text.show()
+        self.window().close()

@@ -1,5 +1,6 @@
+import random
 import sys
-
+from network import Switch
 from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator, QAction
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QSlider, QPushButton
 from PyQt6.QtCore import Qt, QRegularExpression
@@ -36,11 +37,12 @@ class SwitchWindow(QMainWindow):
             w.show()
 
         # --- Placeholder ---
-        label = QLabel(" ")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 20px; color: #555;")
         for w in widgets:
             layout.addWidget(w)
 
     def validation(self):
-        print("okok")
+        print("Validé")
+        self.nom.text = Switch(self.nom.text(), self.ports.text())
+        print("Création du switch réussie")
+        self.nom.text.show()
+        self.window().close()
