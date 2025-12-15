@@ -4,7 +4,6 @@ from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout
 import json
 import network
-from ui_nouveau_projet import ProjectWindow
 from form_pc import PcWindow
 from form_switch import SwitchWindow
 

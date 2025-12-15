@@ -2,9 +2,6 @@ import sys
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame
 
-from ui_nouveau_projet import ProjectWindow
-
-
 class HomeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
