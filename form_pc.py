@@ -2,7 +2,11 @@ from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QRegularExpression
 from network import PC
+import random
 
+
+def generate_mac():
+    return ":".join(f"{random.randint(0, 255):02x}" for _ in range(6))
 
 class PcWindow(QMainWindow):
     def __init__(self):
@@ -28,8 +32,7 @@ class PcWindow(QMainWindow):
         input_validator2 = QRegularExpressionValidator(
             QRegularExpression(r"^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$"), self.ip
         )
-        self.ip.setValidator(input_validator2)
-        self.mac = QLineEdit(parent=self)
+        self.mac = QLabel(generate_mac())
 
         self.valider = QPushButton("Valider")
         self.valider.clicked.connect(self.validation)
