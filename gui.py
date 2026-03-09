@@ -1,6 +1,6 @@
 import os
 import sys
-from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
 from PyQt6.QtCore import Qt
 import json
@@ -121,6 +121,9 @@ class HomeWindow(QMainWindow):
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
+
+        self.escape_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        self.escape_shortcut.activated.connect(self.cancel_connection_mode)
 
         
         
@@ -664,6 +667,17 @@ class NetworkGraphicsView(QGraphicsView):
             event.accept()
             return
         super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):
+        if (
+            event.button() == Qt.MouseButton.RightButton
+            and self.parent_window.connect_mode
+            and self.parent_window.pending_connection_item is not None
+        ):
+            self.parent_window.cancel_connection_mode()
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
 
 class Cable(QGraphicsLineItem):
