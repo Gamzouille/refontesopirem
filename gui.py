@@ -369,9 +369,12 @@ class HomeWindow(QMainWindow):
         menu = QMenu(self)
         cable_details = self.get_cable_details_for_item(item)
 
+        disconnect_menu = menu.addMenu("Déconnecter")
+
         if not cable_details:
-            no_action = menu.addAction("Aucune connexion à déconnecter")
+            no_action = disconnect_menu.addAction("Aucune connexion à déconnecter")
             no_action.setEnabled(False)
+            disconnect_menu.setEnabled(False)
         else:
             if hasattr(item, "switch"):
                 cable_details.sort(
@@ -389,12 +392,12 @@ class HomeWindow(QMainWindow):
                 other_port = detail["other_port"]
                 other_type = "PC" if hasattr(other, "pc") else "Switch" if hasattr(other, "switch") else "Appareil"
                 other_name = self.get_device_name(other)
-                label = f"Déconnecter de {other_type} {other_name}"
+                label = f"{other_type} {other_name}"
                 if hasattr(item, "switch") and own_port is not None:
                     label += f" (port local {own_port})"
                 if hasattr(other, "switch") and other_port is not None:
                     label += f" (port distant {other_port})"
-                action = menu.addAction(label)
+                action = disconnect_menu.addAction(label)
                 action.triggered.connect(lambda checked=False, c=detail["cable"]: self.disconnect_cable(c))
 
         self.active_context_menu = menu
