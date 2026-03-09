@@ -164,7 +164,7 @@ class HomeWindow(QMainWindow):
 
         item = MovablePixmapItem(pixmap)
         item.device_type = "pc"
-        item.set_pc_name("PC")
+        item.set_device_name("PC")
         item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
@@ -183,12 +183,13 @@ class HomeWindow(QMainWindow):
 
         item = MovablePixmapItem(pixmap)
         item.device_type = "switch"
+        item.set_device_name("Switch")
         item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(100, 100)
 
-        self.formSwitch()
+        self.formSwitch(item)
         item.setScale(1.25)
         
         
@@ -200,8 +201,14 @@ class HomeWindow(QMainWindow):
         )
         self.formpc_window.show()
 
-    def formSwitch(self):
+    def formSwitch(self, item):
         self.forms_window = SwitchWindow()
+        self.forms_window.switch_created.connect(
+            lambda sw, current_item=item: self.attach_switch_to_item(current_item, sw)
+        )
+        self.forms_window.cancelled.connect(
+            lambda current_item=item: self.remove_device_item(current_item)
+        )
         self.forms_window.show()
 
         #def supprimerPC(self):
@@ -243,18 +250,36 @@ class HomeWindow(QMainWindow):
 
     def attach_pc_to_item(self, item, pc):
         item.pc = pc
-        item.set_pc_name(pc.name)
+        item.set_device_name(pc.name)
+
+    def attach_switch_to_item(self, item, sw):
+        item.switch = sw
+        item.set_device_name(sw.nom)
+
+    def remove_device_item(self, item):
+        if item in self.devices:
+            self.devices.remove(item)
+        if item.scene() is not None:
+            self.scene.removeItem(item)
 
     def on_device_clicked(self, item):
-        if not hasattr(item, "pc"):
+        if hasattr(item, "pc"):
+            pc = item.pc
+            QMessageBox.information(
+                self,
+                "Attributs du PC",
+                f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}"
+            )
             return
 
-        pc = item.pc
-        QMessageBox.information(
-            self,
-            "Attributs du PC",
-            f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}"
-        )
+        if hasattr(item, "switch"):
+            sw = item.switch
+            QMessageBox.information(
+                self,
+                "Attributs du switch",
+                f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}"
+            )
+            return
 
 
 
@@ -273,14 +298,14 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.on_double_click = None
         self.name_item = None
 
-    def set_pc_name(self, name):
+    def set_device_name(self, name):
         if self.name_item is None:
             self.name_item = QGraphicsSimpleTextItem(self)
         self.name_item.setText(name)
-        self.update_pc_name_style()
-        self.update_pc_name_position()
+        self.update_name_style()
+        self.update_name_position()
 
-    def update_pc_name_style(self):
+    def update_name_style(self):
         if self.name_item is None:
             return
         rect = self.boundingRect()
@@ -289,7 +314,7 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         font.setPixelSize(target_px)
         self.name_item.setFont(font)
 
-    def update_pc_name_position(self):
+    def update_name_position(self):
         if self.name_item is None:
             return
         rect = self.boundingRect()
@@ -306,8 +331,8 @@ class MovablePixmapItem(QGraphicsPixmapItem):
 
     def setScale(self, scale):
         super().setScale(scale)
-        self.update_pc_name_style()
-        self.update_pc_name_position()
+        self.update_name_style()
+        self.update_name_position()
 
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)

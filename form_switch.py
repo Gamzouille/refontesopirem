@@ -3,14 +3,18 @@ import sys
 from network import Switch
 from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator, QAction
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QSlider, QPushButton
-from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal
 
 
 class SwitchWindow(QMainWindow):
+    switch_created = pyqtSignal(object)
+    cancelled = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Paramètrer le switch")
         self.resize(400, 300)
+        self.is_validated = False
 
         # --- Contenu central ---
         central = QWidget()
@@ -41,8 +45,17 @@ class SwitchWindow(QMainWindow):
             layout.addWidget(w)
 
     def validation(self):
+        if not self.nom.text() or not self.ports.text():
+            return
+
         print("Validé")
-        self.nom.text = Switch(self.nom.text(), self.ports.text())
+        sw = Switch(self.nom.text(), int(self.ports.text()))
+        self.is_validated = True
+        self.switch_created.emit(sw)
         print("Création du switch réussie")
-        self.nom.text.show()
         self.window().close()
+
+    def closeEvent(self, event):
+        if not self.is_validated:
+            self.cancelled.emit()
+        super().closeEvent(event)
