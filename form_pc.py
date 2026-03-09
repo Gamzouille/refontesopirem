@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal
 from network import PC
 import random
 
@@ -9,6 +9,8 @@ def generate_mac():
     return ":".join(f"{random.randint(0, 255):02x}" for _ in range(6))
 
 class PcWindow(QMainWindow):
+    pc_created = pyqtSignal(object)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Paramètrer le pc")
@@ -47,7 +49,7 @@ class PcWindow(QMainWindow):
 
     def validation(self):
         print("Validé")
-        self.mac.text = PC(self.nom.text(), self.ip.text(), self.mac.text())
+        pc = PC(self.nom.text(), self.ip.text(), self.mac.text())
+        self.pc_created.emit(pc)
         print("Création du pc réussie")
-        self.mac.text.show()
         self.window().close()

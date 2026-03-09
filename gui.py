@@ -1,7 +1,7 @@
 import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox
 import json
 import network
 from form_pc import PcWindow
@@ -163,10 +163,11 @@ class HomeWindow(QMainWindow):
         pixmap = QPixmap("images/pc_icon.png")
 
         item = MovablePixmapItem(pixmap)
+        item.on_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(50, 50)
-        self.formPC()
+        self.formPC(item)
         item.setScale(0.5)
         
         
@@ -179,6 +180,7 @@ class HomeWindow(QMainWindow):
         pixmap = QPixmap("images/switch_icon.png")
 
         item = MovablePixmapItem(pixmap)
+        item.on_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(100, 100)
@@ -188,8 +190,11 @@ class HomeWindow(QMainWindow):
         
         
 
-    def formPC(self):
+    def formPC(self, item):
         self.formpc_window = PcWindow()
+        self.formpc_window.pc_created.connect(
+            lambda pc, current_item=item: self.attach_pc_to_item(current_item, pc)
+        )
         self.formpc_window.show()
 
     def formSwitch(self):
@@ -233,6 +238,20 @@ class HomeWindow(QMainWindow):
                 self.scene.addItem(cable)
                 self.cables.append(cable)
 
+    def attach_pc_to_item(self, item, pc):
+        item.pc = pc
+
+    def on_device_clicked(self, item):
+        if not hasattr(item, "pc"):
+            return
+
+        pc = item.pc
+        QMessageBox.information(
+            self,
+            "Attributs du PC",
+            f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}"
+        )
+
 
 
 
@@ -247,12 +266,18 @@ class MovablePixmapItem(QGraphicsPixmapItem):
             QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
         )
         self.cables = []
+        self.on_click = None
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             for cable in self.cables:
                 cable.update_position()
         return super().itemChange(change, value)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if callable(self.on_click):
+            self.on_click(self)
 
 
 class Cable(QGraphicsLineItem):
@@ -328,4 +353,3 @@ def run_app():
 
 if __name__ == "__main__":
     run_app()
-
