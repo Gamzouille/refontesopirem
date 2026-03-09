@@ -2,6 +2,7 @@ import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem
+from PyQt6.QtCore import Qt
 import json
 import network
 from form_pc import PcWindow
@@ -42,7 +43,7 @@ class HomeWindow(QMainWindow):
         # --- Zone graphique déplaçable ---
         self.scene = QGraphicsScene()
         self.devices = []  # liste de tous les QGraphicsPixmapItem ajoutés
-        self.view = QGraphicsView(self.scene)
+        self.view = NetworkGraphicsView(self.scene, self)
         layout.addWidget(self.view)
         self.scene.setBackgroundBrush(QColor("white"))
         self.view.setStyleSheet("background: white;")
@@ -50,6 +51,9 @@ class HomeWindow(QMainWindow):
         # --- devices gestion --- 
         self.devices = []  # liste de tous les QGraphicsPixmapItem ajoutés
         self.cables = []
+        self.connect_mode = False
+        self.pending_connection_item = None
+        self.temp_cable = None
 
         
         
@@ -128,6 +132,12 @@ class HomeWindow(QMainWindow):
                 c.update_position()
         return False
 
+    def on_scene_mouse_move(self, scene_pos):
+        if not self.connect_mode or self.pending_connection_item is None or self.temp_cable is None:
+            return
+        p1 = self.pending_connection_item.sceneBoundingRect().center()
+        self.temp_cable.setLine(p1.x(), p1.y(), scene_pos.x(), scene_pos.y())
+
 
     def save(self):
         fichier, _ = QFileDialog.getSaveFileName(
@@ -165,6 +175,7 @@ class HomeWindow(QMainWindow):
         item = MovablePixmapItem(pixmap)
         item.device_type = "pc"
         item.set_device_name("PC")
+        item.on_click = self.on_device_single_clicked
         item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
@@ -184,6 +195,7 @@ class HomeWindow(QMainWindow):
         item = MovablePixmapItem(pixmap)
         item.device_type = "switch"
         item.set_device_name("Switch")
+        item.on_click = self.on_device_single_clicked
         item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
@@ -195,11 +207,18 @@ class HomeWindow(QMainWindow):
         
 
     def formPC(self, item):
-        self.formpc_window = PcWindow()
+        self.formpc_window = PcWindow(ip_conflict_checker=self.find_existing_pc_name_by_ip)
         self.formpc_window.pc_created.connect(
             lambda pc, current_item=item: self.attach_pc_to_item(current_item, pc)
         )
         self.formpc_window.show()
+
+    def find_existing_pc_name_by_ip(self, ip):
+        names = []
+        for device in self.devices:
+            if hasattr(device, "pc") and device.pc.ip == ip:
+                names.append(device.pc.name)
+        return names
 
     def formSwitch(self, item):
         self.forms_window = SwitchWindow()
@@ -237,16 +256,19 @@ class HomeWindow(QMainWindow):
         
         
     def connecter(self):
-        if len(self.devices) < 2:
-            return
+        self.connect_mode = True
+        self.pending_connection_item = None
+        if self.temp_cable is not None and self.temp_cable.scene() is not None:
+            self.scene.removeItem(self.temp_cable)
+        self.temp_cable = None
+        self.view.setFocus()
 
-        win = ConnectWindow(self.devices, self)
-        if win.exec() == QDialog.DialogCode.Accepted:
-            d1, d2 = win.get_selected_devices()
-            if d1 is not d2:
-                cable = Cable(d1, d2)
-                self.scene.addItem(cable)
-                self.cables.append(cable)
+    def cancel_connection_mode(self):
+        self.connect_mode = False
+        self.pending_connection_item = None
+        if self.temp_cable is not None and self.temp_cable.scene() is not None:
+            self.scene.removeItem(self.temp_cable)
+        self.temp_cable = None
 
     def attach_pc_to_item(self, item, pc):
         item.pc = pc
@@ -257,6 +279,8 @@ class HomeWindow(QMainWindow):
         item.set_device_name(sw.nom)
 
     def remove_device_item(self, item):
+        if self.pending_connection_item is item:
+            self.cancel_connection_mode()
         if item in self.devices:
             self.devices.remove(item)
         if item.scene() is not None:
@@ -268,7 +292,7 @@ class HomeWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Attributs du PC",
-                f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}"
+                f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}\n\nConnexions:\n{self.build_connections_text(item)}"
             )
             return
 
@@ -277,9 +301,144 @@ class HomeWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Attributs du switch",
-                f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}"
+                f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}\n\nConnexions:\n{self.build_connections_text(item)}"
             )
             return
+
+    def is_connectable_device(self, item):
+        return hasattr(item, "pc") or hasattr(item, "switch")
+
+    def get_device_name(self, item):
+        if hasattr(item, "pc"):
+            return item.pc.name
+        if hasattr(item, "switch"):
+            return item.switch.nom
+        return "Appareil"
+
+    def build_connections_text(self, item):
+        lines = []
+        for cable in self.cables:
+            if cable.item1 is item:
+                other = cable.item2
+            elif cable.item2 is item:
+                other = cable.item1
+            else:
+                continue
+
+            other_type = "PC" if hasattr(other, "pc") else "Switch" if hasattr(other, "switch") else "Appareil"
+            other_name = self.get_device_name(other)
+            own_port = cable.get_port_for_item(item)
+            other_port = cable.get_port_for_item(other)
+
+            line = f"- {other_type} {other_name}"
+            port_chunks = []
+            if hasattr(item, "switch") and own_port is not None:
+                port_chunks.append(f"port local: {own_port}")
+            if hasattr(other, "switch") and other_port is not None:
+                port_chunks.append(f"port distant (switch): {other_port}")
+            if port_chunks:
+                line += " | " + " | ".join(port_chunks)
+            lines.append(line)
+
+        if not lines:
+            return "Aucune connexion"
+        return "\n".join(lines)
+
+    def apply_connection_config(self, item1, item2, config):
+        s1 = item1.switch if hasattr(item1, "switch") else None
+        s2 = item2.switch if hasattr(item2, "switch") else None
+        pc1 = item1.pc if hasattr(item1, "pc") else None
+        pc2 = item2.pc if hasattr(item2, "pc") else None
+
+        if s1 is not None:
+            p1 = config.get("switch1_port")
+            occupied = s1.ports.get(p1)
+            if occupied is not None and occupied is not pc2:
+                QMessageBox.warning(self, "Port occupe", f"Le port {p1} de {s1.nom} est deja utilise.")
+                return False
+            if p1 in getattr(s1, "uplink_ports", set()):
+                QMessageBox.warning(self, "Port occupe", f"Le port {p1} de {s1.nom} est deja utilise.")
+                return False
+
+        if s2 is not None:
+            p2 = config.get("switch2_port")
+            occupied = s2.ports.get(p2)
+            if occupied is not None and occupied is not pc1:
+                QMessageBox.warning(self, "Port occupe", f"Le port {p2} de {s2.nom} est deja utilise.")
+                return False
+            if p2 in getattr(s2, "uplink_ports", set()):
+                QMessageBox.warning(self, "Port occupe", f"Le port {p2} de {s2.nom} est deja utilise.")
+                return False
+
+        if s1 is not None and pc2 is not None:
+            if pc2.switch is not None and pc2.switch is not s1:
+                QMessageBox.warning(self, "PC deja connecte", f"{pc2.name} est deja connecte a {pc2.switch.nom}.")
+                return False
+            if pc2.switch is s1 and pc2.switch_port != config["switch1_port"] and pc2.switch_port in s1.ports:
+                s1.ports[pc2.switch_port] = None
+            s1.connect(config["switch1_port"], pc2)
+            return True
+
+        if s2 is not None and pc1 is not None:
+            if pc1.switch is not None and pc1.switch is not s2:
+                QMessageBox.warning(self, "PC deja connecte", f"{pc1.name} est deja connecte a {pc1.switch.nom}.")
+                return False
+            if pc1.switch is s2 and pc1.switch_port != config["switch2_port"] and pc1.switch_port in s2.ports:
+                s2.ports[pc1.switch_port] = None
+            s2.connect(config["switch2_port"], pc1)
+            return True
+
+        if s1 is not None and s2 is not None:
+            if s1 is s2:
+                QMessageBox.warning(self, "Connexion invalide", "Impossible de connecter un switch a lui-meme.")
+                return False
+            if not hasattr(s1, "uplink_ports"):
+                s1.uplink_ports = set()
+            if not hasattr(s2, "uplink_ports"):
+                s2.uplink_ports = set()
+            s1.uplink_ports.add(config["switch1_port"])
+            s2.uplink_ports.add(config["switch2_port"])
+            return True
+
+        return True
+
+    def on_device_single_clicked(self, item):
+        if not self.connect_mode:
+            return False
+        if not self.is_connectable_device(item):
+            return True
+
+        if self.pending_connection_item is None:
+            self.pending_connection_item = item
+            self.temp_cable = QGraphicsLineItem()
+            pen = QPen(QColor("black"))
+            pen.setWidth(2)
+            self.temp_cable.setPen(pen)
+            p1 = item.sceneBoundingRect().center()
+            self.temp_cable.setLine(p1.x(), p1.y(), p1.x(), p1.y())
+            self.scene.addItem(self.temp_cable)
+            return True
+
+        if item is self.pending_connection_item:
+            return True
+
+        connection_config = {}
+        first = self.pending_connection_item
+        if hasattr(first, "switch") or hasattr(item, "switch"):
+            config_dialog = LinkConfigWindow(first, item, self)
+            if config_dialog.exec() != QDialog.DialogCode.Accepted:
+                return True
+            connection_config = config_dialog.get_config()
+            if not self.apply_connection_config(first, item, connection_config):
+                return True
+
+        cable = Cable(self.pending_connection_item, item)
+        cable.connection_config = connection_config
+        self.scene.addItem(cable)
+        cable.update_position()
+        self.cables.append(cable)
+        self.cancel_connection_mode()
+        return True
 
 
 
@@ -292,9 +451,11 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.setFlags(
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
             QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
-            QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
+            QGraphicsItem.GraphicsItemFlag.ItemIsFocusable |
+            QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
         )
         self.cables = []
+        self.on_click = None
         self.on_double_click = None
         self.name_item = None
 
@@ -324,7 +485,10 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.name_item.setPos(x, y)
 
     def itemChange(self, change, value):
-        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
+        if change in (
+            QGraphicsItem.GraphicsItemChange.ItemPositionChange,
+            QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged,
+        ):
             for cable in self.cables:
                 cable.update_position()
         return super().itemChange(change, value)
@@ -339,12 +503,40 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         if callable(self.on_double_click):
             self.on_double_click(self)
 
+    def mousePressEvent(self, event):
+        if callable(self.on_click) and self.on_click(self):
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+
+class NetworkGraphicsView(QGraphicsView):
+    def __init__(self, scene, parent_window):
+        super().__init__(scene)
+        self.parent_window = parent_window
+        self.setMouseTracking(True)
+        self.viewport().setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        scene_pos = self.mapToScene(event.pos())
+        self.parent_window.on_scene_mouse_move(scene_pos)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape and self.parent_window.connect_mode:
+            self.parent_window.cancel_connection_mode()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
 
 class Cable(QGraphicsLineItem):
     def __init__(self, item1, item2):
         super().__init__()
         self.item1 = item1
         self.item2 = item2
+        self.connection_config = {}
         pen = QPen(QColor("black"))
         pen.setWidth(2)
         self.setPen(pen)
@@ -361,6 +553,13 @@ class Cable(QGraphicsLineItem):
         p1 = self.item1.sceneBoundingRect().center()
         p2 = self.item2.sceneBoundingRect().center()
         self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
+
+    def get_port_for_item(self, item):
+        if item is self.item1:
+            return self.connection_config.get("switch1_port")
+        if item is self.item2:
+            return self.connection_config.get("switch2_port")
+        return None
 
 
 
@@ -396,6 +595,88 @@ class ConnectWindow(QDialog):
         d1 = self.combo1.currentData()
         d2 = self.combo2.currentData()
         return d1, d2
+
+
+class LinkConfigWindow(QDialog):
+    def __init__(self, item1, item2, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Configurer la connexion")
+        self.item1 = item1
+        self.item2 = item2
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        self.switch1_combo = None
+        self.switch2_combo = None
+
+        layout.addWidget(QLabel(f"Connexion : {self._name(item1)} ↔ {self._name(item2)}"))
+
+        if hasattr(item1, "switch"):
+            layout.addWidget(QLabel(f"Port de {item1.switch.nom} :"))
+            self.switch1_combo = QComboBox()
+            self._fill_switch_ports(self.switch1_combo, item1.switch)
+            layout.addWidget(self.switch1_combo)
+
+        if hasattr(item2, "switch"):
+            layout.addWidget(QLabel(f"Port de {item2.switch.nom} :"))
+            self.switch2_combo = QComboBox()
+            self._fill_switch_ports(self.switch2_combo, item2.switch)
+            layout.addWidget(self.switch2_combo)
+
+        self.btn_validate = QPushButton("Valider")
+        btn_cancel = QPushButton("Annuler")
+        self.btn_validate.clicked.connect(self.accept)
+        btn_cancel.clicked.connect(self.reject)
+        layout.addWidget(self.btn_validate)
+        layout.addWidget(btn_cancel)
+        self._update_validate_state()
+
+    def _name(self, item):
+        if hasattr(item, "pc"):
+            return item.pc.name
+        if hasattr(item, "switch"):
+            return item.switch.nom
+        return "Appareil"
+
+    def get_config(self):
+        config = {}
+        if self.switch1_combo is not None:
+            config["switch1_port"] = self.switch1_combo.currentData()
+        if self.switch2_combo is not None:
+            config["switch2_port"] = self.switch2_combo.currentData()
+        return config
+
+    def _fill_switch_ports(self, combo, sw):
+        used_ports = {port for port, value in sw.ports.items() if value is not None}
+        used_ports.update(getattr(sw, "uplink_ports", set()))
+        for p in sorted(sw.ports.keys()):
+            is_used = p in used_ports
+            label = f"{p} (utilise)" if is_used else str(p)
+            combo.addItem(label, p)
+            idx = combo.count() - 1
+            model_item = combo.model().item(idx)
+            if is_used and model_item is not None:
+                model_item.setEnabled(False)
+
+        for idx in range(combo.count()):
+            model_item = combo.model().item(idx)
+            if model_item is None or model_item.isEnabled():
+                combo.setCurrentIndex(idx)
+                break
+
+    def _combo_has_enabled_item(self, combo):
+        if combo is None:
+            return True
+        for idx in range(combo.count()):
+            model_item = combo.model().item(idx)
+            if model_item is None or model_item.isEnabled():
+                return True
+        return False
+
+    def _update_validate_state(self):
+        can_validate = self._combo_has_enabled_item(self.switch1_combo) and self._combo_has_enabled_item(self.switch2_combo)
+        self.btn_validate.setEnabled(can_validate)
 
 
 class OptionWindow(QMainWindow):

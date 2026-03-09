@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
-from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton
+from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal
 from network import PC
 import random
@@ -11,10 +11,11 @@ def generate_mac():
 class PcWindow(QMainWindow):
     pc_created = pyqtSignal(object)
 
-    def __init__(self):
+    def __init__(self, ip_conflict_checker=None):
         super().__init__()
         self.setWindowTitle("Paramètrer le pc")
         self.resize(400, 300)
+        self.ip_conflict_checker = ip_conflict_checker
 
         # --- Contenu central ---
         central = QWidget()
@@ -49,6 +50,22 @@ class PcWindow(QMainWindow):
 
     def validation(self):
         print("Validé")
+        if self.ip_conflict_checker is not None:
+            existing_names = self.ip_conflict_checker(self.ip.text())
+            if existing_names:
+                names_text = ", ".join(f'"{name}"' for name in existing_names)
+                msg = QMessageBox(self)
+                msg.setWindowTitle("Attention")
+                msg.setText(
+                    f"Attention les PC {names_text} ont deja cette adresse IP attribuee.\nEtes vous sur de vouloir continuer ?"
+                )
+                btn_oui = msg.addButton("Oui", QMessageBox.ButtonRole.YesRole)
+                btn_non = msg.addButton("Non", QMessageBox.ButtonRole.NoRole)
+                msg.setDefaultButton(btn_non)
+                msg.exec()
+                if msg.clickedButton() == btn_non:
+                    return
+
         pc = PC(self.nom.text(), self.ip.text(), self.mac.text())
         self.pc_created.emit(pc)
         print("Création du pc réussie")
