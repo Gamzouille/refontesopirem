@@ -104,7 +104,6 @@ class HomeWindow(QMainWindow):
         self.btn_pc = QAction(" Ajouter un PC")
         self.btn_switch = QAction(" Ajouter un switch")
         self.btn_quit = QAction(" Quitter")
-        self.btn_connect = QAction(" Connecter")
         
         # --- Ajout des actions ---
         file_menu.addAction(self.btn_new)
@@ -114,7 +113,6 @@ class HomeWindow(QMainWindow):
         file_menu.addAction(self.btn_quit)
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
-        periph_menu.addAction(self.btn_connect)
 
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
@@ -123,7 +121,6 @@ class HomeWindow(QMainWindow):
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
-        self.btn_connect.triggered.connect(self.connecter)
 
         
         
@@ -266,6 +263,17 @@ class HomeWindow(QMainWindow):
         self.temp_cable = None
         self.view.setFocus()
 
+    def connecter_depuis_item(self, item):
+        self.connecter()
+        self.pending_connection_item = item
+        self.temp_cable = QGraphicsLineItem()
+        pen = QPen(QColor("black"))
+        pen.setWidth(2)
+        self.temp_cable.setPen(pen)
+        p1 = item.sceneBoundingRect().center()
+        self.temp_cable.setLine(p1.x(), p1.y(), p1.x(), p1.y())
+        self.scene.addItem(self.temp_cable)
+
     def cancel_connection_mode(self):
         self.connect_mode = False
         self.pending_connection_item = None
@@ -366,8 +374,14 @@ class HomeWindow(QMainWindow):
         return details
 
     def show_empty_context_menu(self, item, screen_pos):
+        self.scene.clearSelection()
+        item.setSelected(True)
+
         menu = QMenu(self)
         cable_details = self.get_cable_details_for_item(item)
+
+        connect_action = menu.addAction("Connecter")
+        connect_action.triggered.connect(lambda: self.connecter_depuis_item(item))
 
         disconnect_menu = menu.addMenu("Déconnecter")
 
@@ -521,8 +535,13 @@ class HomeWindow(QMainWindow):
         if item is self.pending_connection_item:
             return True
 
-        connection_config = {}
         first = self.pending_connection_item
+        for cable in self.cables:
+            if (cable.item1 is first and cable.item2 is item) or (cable.item2 is first and cable.item1 is item):
+                QMessageBox.information(self, "Connexion existante", "Ces deux machines sont deja connectées.")
+                return True
+
+        connection_config = {}
         if hasattr(first, "switch") or hasattr(item, "switch"):
             config_dialog = LinkConfigWindow(first, item, self)
             if config_dialog.exec() != QDialog.DialogCode.Accepted:
