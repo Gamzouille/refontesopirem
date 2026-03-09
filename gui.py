@@ -292,6 +292,7 @@ class HomeWindow(QMainWindow):
     def remove_device_item(self, item):
         if self.pending_connection_item is item:
             self.cancel_connection_mode()
+        self.disconnect_machine(item)
         if item in self.devices:
             self.devices.remove(item)
         if item.scene() is not None:
@@ -413,6 +414,10 @@ class HomeWindow(QMainWindow):
                     label += f" (port distant {other_port})"
                 action = disconnect_menu.addAction(label)
                 action.triggered.connect(lambda checked=False, c=detail["cable"]: self.disconnect_cable(c))
+
+        menu.addSeparator()
+        delete_action = menu.addAction("Supprimer")
+        delete_action.triggered.connect(lambda: self.remove_device_item(item))
 
         self.active_context_menu = menu
         menu.aboutToHide.connect(lambda: setattr(self, "active_context_menu", None))
