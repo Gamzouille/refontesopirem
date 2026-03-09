@@ -1,7 +1,7 @@
 import os
 import sys
 from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
 from PyQt6.QtCore import Qt
 import json
 import network
@@ -54,6 +54,7 @@ class HomeWindow(QMainWindow):
         self.connect_mode = False
         self.pending_connection_item = None
         self.temp_cable = None
+        self.active_context_menu = None
 
         
         
@@ -177,6 +178,7 @@ class HomeWindow(QMainWindow):
         item.set_device_name("PC")
         item.on_click = self.on_device_single_clicked
         item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(50, 50)
@@ -197,6 +199,7 @@ class HomeWindow(QMainWindow):
         item.set_device_name("Switch")
         item.on_click = self.on_device_single_clicked
         item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(100, 100)
@@ -304,6 +307,99 @@ class HomeWindow(QMainWindow):
                 f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}\n\nConnexions:\n{self.build_connections_text(item)}"
             )
             return
+
+    def disconnect_cable(self, cable):
+        item1 = cable.item1
+        item2 = cable.item2
+        p1 = cable.get_port_for_item(item1)
+        p2 = cable.get_port_for_item(item2)
+
+        if hasattr(item1, "switch") and p1 is not None:
+            if hasattr(item2, "pc"):
+                item1.switch.ports[p1] = None
+                if item2.pc.switch is item1.switch and item2.pc.switch_port == p1:
+                    item2.pc.switch = None
+                    item2.pc.switch_port = None
+            elif hasattr(item2, "switch"):
+                item1.switch.uplink_ports = getattr(item1.switch, "uplink_ports", set())
+                item1.switch.uplink_ports.discard(p1)
+
+        if hasattr(item2, "switch") and p2 is not None:
+            if hasattr(item1, "pc"):
+                item2.switch.ports[p2] = None
+                if item1.pc.switch is item2.switch and item1.pc.switch_port == p2:
+                    item1.pc.switch = None
+                    item1.pc.switch_port = None
+            elif hasattr(item1, "switch"):
+                item2.switch.uplink_ports = getattr(item2.switch, "uplink_ports", set())
+                item2.switch.uplink_ports.discard(p2)
+
+        if cable in item1.cables:
+            item1.cables.remove(cable)
+        if cable in item2.cables:
+            item2.cables.remove(cable)
+        if cable in self.cables:
+            self.cables.remove(cable)
+        if cable.scene() is not None:
+            self.scene.removeItem(cable)
+
+    def disconnect_machine(self, item):
+        for cable in list(self.cables):
+            if cable.item1 is item or cable.item2 is item:
+                self.disconnect_cable(cable)
+
+    def get_cable_details_for_item(self, item):
+        details = []
+        for cable in self.cables:
+            if cable.item1 is item:
+                other = cable.item2
+            elif cable.item2 is item:
+                other = cable.item1
+            else:
+                continue
+            details.append({
+                "cable": cable,
+                "other": other,
+                "own_port": cable.get_port_for_item(item),
+                "other_port": cable.get_port_for_item(other),
+            })
+        return details
+
+    def show_empty_context_menu(self, item, screen_pos):
+        menu = QMenu(self)
+        cable_details = self.get_cable_details_for_item(item)
+
+        if not cable_details:
+            no_action = menu.addAction("Aucune connexion à déconnecter")
+            no_action.setEnabled(False)
+        else:
+            if hasattr(item, "switch"):
+                cable_details.sort(
+                    key=lambda d: (
+                        d["own_port"] is None,
+                        d["own_port"] if d["own_port"] is not None else 10**9,
+                    )
+                )
+            else:
+                cable_details.sort(key=lambda d: self.get_device_name(d["other"]).lower())
+
+            for detail in cable_details:
+                other = detail["other"]
+                own_port = detail["own_port"]
+                other_port = detail["other_port"]
+                other_type = "PC" if hasattr(other, "pc") else "Switch" if hasattr(other, "switch") else "Appareil"
+                other_name = self.get_device_name(other)
+                label = f"Déconnecter de {other_type} {other_name}"
+                if hasattr(item, "switch") and own_port is not None:
+                    label += f" (port local {own_port})"
+                if hasattr(other, "switch") and other_port is not None:
+                    label += f" (port distant {other_port})"
+                action = menu.addAction(label)
+                action.triggered.connect(lambda checked=False, c=detail["cable"]: self.disconnect_cable(c))
+
+        self.active_context_menu = menu
+        menu.aboutToHide.connect(lambda: setattr(self, "active_context_menu", None))
+        menu.popup(screen_pos)
 
     def is_connectable_device(self, item):
         return hasattr(item, "pc") or hasattr(item, "switch")
@@ -457,6 +553,7 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.cables = []
         self.on_click = None
         self.on_double_click = None
+        self.on_context_menu = None
         self.name_item = None
 
     def set_device_name(self, name):
@@ -508,6 +605,13 @@ class MovablePixmapItem(QGraphicsPixmapItem):
             event.accept()
             return
         super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event):
+        if callable(self.on_context_menu):
+            self.on_context_menu(self, event.screenPos())
+            event.accept()
+            return
+        super().contextMenuEvent(event)
 
 
 class NetworkGraphicsView(QGraphicsView):
