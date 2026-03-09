@@ -1,7 +1,7 @@
 import os
 import sys
-from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem
 import json
 import network
 from form_pc import PcWindow
@@ -163,7 +163,9 @@ class HomeWindow(QMainWindow):
         pixmap = QPixmap("images/pc_icon.png")
 
         item = MovablePixmapItem(pixmap)
-        item.on_click = self.on_device_clicked
+        item.device_type = "pc"
+        item.set_pc_name("PC")
+        item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(50, 50)
@@ -180,7 +182,8 @@ class HomeWindow(QMainWindow):
         pixmap = QPixmap("images/switch_icon.png")
 
         item = MovablePixmapItem(pixmap)
-        item.on_click = self.on_device_clicked
+        item.device_type = "switch"
+        item.on_double_click = self.on_device_clicked
         self.scene.addItem(item)
         self.devices.append(item)
         item.setPos(100, 100)
@@ -240,6 +243,7 @@ class HomeWindow(QMainWindow):
 
     def attach_pc_to_item(self, item, pc):
         item.pc = pc
+        item.set_pc_name(pc.name)
 
     def on_device_clicked(self, item):
         if not hasattr(item, "pc"):
@@ -266,7 +270,33 @@ class MovablePixmapItem(QGraphicsPixmapItem):
             QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
         )
         self.cables = []
-        self.on_click = None
+        self.on_double_click = None
+        self.name_item = None
+
+    def set_pc_name(self, name):
+        if self.name_item is None:
+            self.name_item = QGraphicsSimpleTextItem(self)
+        self.name_item.setText(name)
+        self.update_pc_name_style()
+        self.update_pc_name_position()
+
+    def update_pc_name_style(self):
+        if self.name_item is None:
+            return
+        rect = self.boundingRect()
+        target_px = max(8, int(rect.width() * self.scale() * 0.12))
+        font = QFont(self.name_item.font())
+        font.setPixelSize(target_px)
+        self.name_item.setFont(font)
+
+    def update_pc_name_position(self):
+        if self.name_item is None:
+            return
+        rect = self.boundingRect()
+        text_rect = self.name_item.boundingRect()
+        x = (rect.width() - text_rect.width()) / 2
+        y = rect.height() + 4
+        self.name_item.setPos(x, y)
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
@@ -274,10 +304,15 @@ class MovablePixmapItem(QGraphicsPixmapItem):
                 cable.update_position()
         return super().itemChange(change, value)
 
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if callable(self.on_click):
-            self.on_click(self)
+    def setScale(self, scale):
+        super().setScale(scale)
+        self.update_pc_name_style()
+        self.update_pc_name_position()
+
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        if callable(self.on_double_click):
+            self.on_double_click(self)
 
 
 class Cable(QGraphicsLineItem):
