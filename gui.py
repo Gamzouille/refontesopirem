@@ -381,6 +381,10 @@ class HomeWindow(QMainWindow):
         menu = QMenu(self)
         cable_details = self.get_cable_details_for_item(item)
 
+        info_action = menu.addAction("Voir les infos")
+        info_action.triggered.connect(lambda: self.on_device_clicked(item))
+
+        menu.addSeparator()
         connect_action = menu.addAction("Connecter")
         connect_action.triggered.connect(lambda: self.connecter_depuis_item(item))
 
