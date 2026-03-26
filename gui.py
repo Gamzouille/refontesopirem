@@ -1,8 +1,8 @@
 import os
 import sys
-from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence, QPainter
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer, QLineF
 import json
 import network
 from form_pc import PcWindow
@@ -55,6 +55,11 @@ class HomeWindow(QMainWindow):
         self.pending_connection_item = None
         self.temp_cable = None
         self.active_context_menu = None
+        self.ping_animation_timer = QTimer(self)
+        self.ping_animation_timer.timeout.connect(self.advance_ping_animation)
+        self.current_ping_path = []
+        self.current_ping_step = 0
+        self.current_ping_progress = 0.0
 
         
         
@@ -391,6 +396,24 @@ class HomeWindow(QMainWindow):
         connect_action = menu.addAction("Connecter")
         connect_action.triggered.connect(lambda: self.connecter_depuis_item(item))
 
+        if hasattr(item, "pc"):
+            ping_menu = menu.addMenu("Ping")
+            pc_targets = [
+                device for device in self.devices
+                if device is not item and hasattr(device, "pc")
+            ]
+            if not pc_targets:
+                no_ping_target = ping_menu.addAction("Aucun PC disponible")
+                no_ping_target.setEnabled(False)
+                ping_menu.setEnabled(False)
+            else:
+                pc_targets.sort(key=lambda device: device.pc.name.lower())
+                for target in pc_targets:
+                    action = ping_menu.addAction(target.pc.name)
+                    action.triggered.connect(
+                        lambda checked=False, source=item, destination=target: self.launch_ping(source, destination)
+                    )
+
         disconnect_menu = menu.addMenu("Déconnecter")
 
         if not cable_details:
@@ -468,6 +491,87 @@ class HomeWindow(QMainWindow):
         if not lines:
             return "Aucune connexion"
         return "\n".join(lines)
+
+    def find_path_between_items(self, start_item, end_item):
+        if start_item is end_item:
+            return []
+
+        queue = [(start_item, [])]
+        visited = {start_item}
+
+        while queue:
+            current_item, current_path = queue.pop(0)
+            for cable in self.cables:
+                if cable.item1 is current_item:
+                    next_item = cable.item2
+                elif cable.item2 is current_item:
+                    next_item = cable.item1
+                else:
+                    continue
+
+                if next_item in visited:
+                    continue
+
+                next_path = current_path + [(cable, current_item, next_item)]
+                if next_item is end_item:
+                    return next_path
+
+                visited.add(next_item)
+                queue.append((next_item, next_path))
+
+        return None
+
+    def stop_ping_animation(self):
+        self.ping_animation_timer.stop()
+        for cable in self.current_ping_path:
+            cable.stop_ping_animation()
+        self.current_ping_path = []
+        self.current_ping_step = 0
+        self.current_ping_progress = 0.0
+
+    def launch_ping(self, source_item, destination_item):
+        path = self.find_path_between_items(source_item, destination_item)
+        if not path:
+            QMessageBox.information(
+                self,
+                "Ping",
+                f"Aucun chemin trouvé entre {source_item.pc.name} et {destination_item.pc.name}."
+            )
+            return
+
+        self.stop_ping_animation()
+        self.current_ping_path = [step[0] for step in path]
+        self.current_ping_step = 0
+        self.current_ping_progress = 0.0
+
+        for cable, from_item, to_item in path:
+            cable.set_ping_direction(from_item, to_item)
+
+        self.current_ping_path[0].set_ping_progress(0.0)
+        self.ping_animation_timer.start(25)
+
+    def advance_ping_animation(self):
+        if not self.current_ping_path:
+            self.stop_ping_animation()
+            return
+
+        current_cable = self.current_ping_path[self.current_ping_step]
+        self.current_ping_progress += 0.025
+        current_cable.set_ping_progress(self.current_ping_progress)
+
+        if self.current_ping_progress < 1.0:
+            return
+
+        current_cable.set_ping_progress(1.0)
+        self.current_ping_step += 1
+        self.current_ping_progress = 0.0
+
+        if self.current_ping_step >= len(self.current_ping_path):
+            QTimer.singleShot(250, self.stop_ping_animation)
+            self.ping_animation_timer.stop()
+            return
+
+        self.current_ping_path[self.current_ping_step].set_ping_progress(0.0)
 
     def apply_connection_config(self, item1, item2, config):
         s1 = item1.switch if hasattr(item1, "switch") else None
@@ -686,6 +790,9 @@ class Cable(QGraphicsLineItem):
         self.item1 = item1
         self.item2 = item2
         self.connection_config = {}
+        self.ping_progress = None
+        self.ping_start_item = None
+        self.ping_end_item = None
         pen = QPen(QColor("black"))
         pen.setWidth(2)
         self.setPen(pen)
@@ -709,6 +816,47 @@ class Cable(QGraphicsLineItem):
         if item is self.item2:
             return self.connection_config.get("switch2_port")
         return None
+
+    def set_ping_direction(self, start_item, end_item):
+        self.ping_start_item = start_item
+        self.ping_end_item = end_item
+
+    def set_ping_progress(self, progress):
+        self.ping_progress = progress
+        self.update()
+
+    def stop_ping_animation(self):
+        self.ping_progress = None
+        self.ping_start_item = None
+        self.ping_end_item = None
+        self.update()
+
+    def paint(self, painter, option, widget=None):
+        super().paint(painter, option, widget)
+        if self.ping_progress is None or self.ping_start_item is None or self.ping_end_item is None:
+            return
+
+        if self.ping_start_item is self.item1 and self.ping_end_item is self.item2:
+            start_point = self.line().p1()
+            end_point = self.line().p2()
+        else:
+            start_point = self.line().p2()
+            end_point = self.line().p1()
+
+        line = QLineF(start_point, end_point)
+        if line.length() == 0:
+            return
+
+        segment_length = min(28.0, line.length() * 0.35)
+        start_ratio = max(0.0, self.ping_progress - (segment_length / line.length()))
+        animated_start = line.pointAt(start_ratio)
+        animated_end = line.pointAt(min(self.ping_progress, 1.0))
+
+        ping_pen = QPen(QColor("#20b15a"))
+        ping_pen.setWidth(6)
+        ping_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(ping_pen)
+        painter.drawLine(animated_start, animated_end)
 
 
 
