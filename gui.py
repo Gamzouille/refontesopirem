@@ -704,18 +704,22 @@ class MovablePixmapItem(QGraphicsPixmapItem):
     def update_name_style(self):
         if self.name_item is None:
             return
-        rect = self.boundingRect()
-        target_px = max(8, int(rect.width() * self.scale() * 0.12))
-        font = QFont(self.name_item.font())
-        font.setPixelSize(target_px)
+        font = QFont("Arial")
+        font.setPointSize(15)
+        font.setBold(False)
         self.name_item.setFont(font)
+        self.name_item.setBrush(QColor("black"))
+        current_scale = self.scale() if self.scale() != 0 else 1.0
+        self.name_item.setScale(1.0 / current_scale)
 
     def update_name_position(self):
         if self.name_item is None:
             return
         rect = self.boundingRect()
         text_rect = self.name_item.boundingRect()
-        x = (rect.width() - text_rect.width()) / 2
+        current_scale = self.scale() if self.scale() != 0 else 1.0
+        effective_text_width = text_rect.width() / current_scale
+        x = (rect.width() - effective_text_width) / 2
         y = rect.height() + 4
         self.name_item.setPos(x, y)
 
