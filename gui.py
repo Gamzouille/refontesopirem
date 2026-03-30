@@ -57,9 +57,10 @@ class HomeWindow(QMainWindow):
         self.active_context_menu = None
         self.ping_animation_timer = QTimer(self)
         self.ping_animation_timer.timeout.connect(self.advance_ping_animation)
-        self.current_ping_path = []
+        self.current_ping_steps = []
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
+        self.current_ping_pause_ticks = 0
 
         
         
@@ -394,6 +395,9 @@ class HomeWindow(QMainWindow):
         info_action = menu.addAction("Voir les infos")
         info_action.triggered.connect(lambda: self.on_device_clicked(item))
 
+        cache_action = menu.addAction("Voir le cache ARP")
+        cache_action.triggered.connect(lambda: self.show_cache_for_item(item))
+
         menu.addSeparator()
         connect_action = menu.addAction("Connecter")
         connect_action.triggered.connect(lambda: self.connecter_depuis_item(item))
@@ -494,6 +498,48 @@ class HomeWindow(QMainWindow):
             return "Aucune connexion"
         return "\n".join(lines)
 
+    def format_pc_arp_cache(self, pc):
+        entries = []
+        if hasattr(pc.arp_table, "items"):
+            entries = list(pc.arp_table.items())
+        elif hasattr(pc.arp_table, "table"):
+            entries = list(pc.arp_table.table.items())
+
+        if not entries:
+            return "Cache ARP vide"
+
+        return "\n".join(f"- {ip} -> {mac}" for ip, mac in sorted(entries))
+
+    def format_switch_mac_table(self, sw):
+        lines = []
+        for mac, port in sorted(sw.mac_table.items(), key=lambda item: str(item[0]).lower()):
+            lines.append(f"- {mac} -> port {port}")
+
+        uplinks = sorted(getattr(sw, "uplink_ports", set()))
+        for port in uplinks:
+            lines.append(f"- uplink -> port {port}")
+
+        if not lines:
+            return "Cache ARP/MAC vide"
+        return "\n".join(lines)
+
+    def show_cache_for_item(self, item):
+        if hasattr(item, "pc"):
+            QMessageBox.information(
+                self,
+                f"Cache ARP de {item.pc.name}",
+                self.format_pc_arp_cache(item.pc)
+            )
+            return
+
+        if hasattr(item, "switch"):
+            QMessageBox.information(
+                self,
+                f"Cache ARP/MAC de {item.switch.nom}",
+                self.format_switch_mac_table(item.switch)
+            )
+            return
+
     def find_path_between_items(self, start_item, end_item):
         if start_item is end_item:
             return []
@@ -523,16 +569,147 @@ class HomeWindow(QMainWindow):
 
         return None
 
+    def reverse_path(self, path):
+        return [(cable, to_item, from_item) for cable, from_item, to_item in reversed(path)]
+
+    def build_broadcast_path(self, start_item):
+        queue = [(start_item, [])]
+        visited = {start_item}
+        broadcast_path = []
+
+        while queue:
+            current_item, _current_path = queue.pop(0)
+            for cable in self.cables:
+                if cable.item1 is current_item:
+                    next_item = cable.item2
+                elif cable.item2 is current_item:
+                    next_item = cable.item1
+                else:
+                    continue
+
+                if next_item in visited:
+                    continue
+
+                visited.add(next_item)
+                queue.append((next_item, []))
+                broadcast_path.append((cable, current_item, next_item))
+
+        return broadcast_path
+
+    def learn_switch_mac_along_path(self, source_mac, path):
+        for cable, _from_item, to_item in path:
+            if hasattr(to_item, "switch"):
+                incoming_port = cable.get_port_for_item(to_item)
+                if incoming_port is not None:
+                    to_item.switch.mac_table[source_mac] = incoming_port
+
+    def build_ping_steps(self, source_item, destination_item, path):
+        source_pc = source_item.pc
+        destination_pc = destination_item.pc
+        reverse_path = self.reverse_path(path)
+        steps = []
+
+        if source_pc.arp_table.get_mac(destination_pc.ip) != destination_pc.mac:
+            broadcast_path = self.build_broadcast_path(source_item)
+            source_pc.trames_envoyees.append(
+                Trame(
+                    source_ip=source_pc.ip,
+                    dest_ip=destination_pc.ip,
+                    source_mac=source_pc.mac,
+                    dest_mac="FF:FF:FF:FF:FF:FF",
+                    type_trame="ARP",
+                )
+            )
+            steps.extend(
+                {
+                    "cable": cable,
+                    "from_item": from_item,
+                    "to_item": to_item,
+                    "color": QColor("#f39c12"),
+                    "phase": "Requête ARP (broadcast)",
+                }
+                for cable, from_item, to_item in broadcast_path
+            )
+            self.learn_switch_mac_along_path(source_pc.mac, broadcast_path)
+            destination_pc.arp_table.add_entry(source_pc.ip, source_pc.mac)
+
+            destination_pc.trames_envoyees.append(
+                Trame(
+                    source_ip=destination_pc.ip,
+                    dest_ip=source_pc.ip,
+                    source_mac=destination_pc.mac,
+                    dest_mac=source_pc.mac,
+                    type_trame="ARP-REPLY",
+                )
+            )
+            steps.extend(
+                {
+                    "cable": cable,
+                    "from_item": from_item,
+                    "to_item": to_item,
+                    "color": QColor("#3498db"),
+                    "phase": "Réponse ARP",
+                }
+                for cable, from_item, to_item in reverse_path
+            )
+            self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
+            source_pc.arp_table.add_entry(destination_pc.ip, destination_pc.mac)
+
+        source_pc.trames_envoyees.append(
+            Trame(
+                source_ip=source_pc.ip,
+                dest_ip=destination_pc.ip,
+                source_mac=source_pc.mac,
+                dest_mac=destination_pc.mac,
+                type_trame="ICMP",
+            )
+        )
+        steps.extend(
+            {
+                "cable": cable,
+                "from_item": from_item,
+                "to_item": to_item,
+                "color": QColor("#20b15a"),
+                "phase": "Requête ICMP",
+            }
+            for cable, from_item, to_item in path
+        )
+        self.learn_switch_mac_along_path(source_pc.mac, path)
+
+        destination_pc.trames_envoyees.append(
+            Trame(
+                source_ip=destination_pc.ip,
+                dest_ip=source_pc.ip,
+                source_mac=destination_pc.mac,
+                dest_mac=source_pc.mac,
+                type_trame="ICMP-REPLY",
+            )
+        )
+        steps.extend(
+            {
+                "cable": cable,
+                "from_item": from_item,
+                "to_item": to_item,
+                "color": QColor("#2ecc71"),
+                "phase": "Réponse ICMP",
+            }
+            for cable, from_item, to_item in reverse_path
+        )
+        self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
+        return steps
+
     def stop_ping_animation(self):
         self.ping_animation_timer.stop()
-        for cable in list(self.current_ping_path):
+        for cable in {step["cable"] for step in self.current_ping_steps}:
             try:
                 cable.stop_ping_animation()
             except RuntimeError:
                 pass
-        self.current_ping_path = []
+        self.current_ping_steps = []
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
+        self.current_ping_pause_ticks = 0
+        self.statusBar().clearMessage()
 
     def launch_ping(self, source_item, destination_item):
         path = self.find_path_between_items(source_item, destination_item)
@@ -544,30 +721,41 @@ class HomeWindow(QMainWindow):
             )
             return
 
+        ping_steps = self.build_ping_steps(source_item, destination_item, path)
+
         self.stop_ping_animation()
-        self.current_ping_path = [step[0] for step in path]
+        self.current_ping_steps = ping_steps
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
+        self.current_ping_pause_ticks = 0
 
-        for cable, from_item, to_item in path:
-            cable.set_ping_direction(from_item, to_item)
+        if not self.current_ping_steps:
+            return
 
-        self.current_ping_path[0].set_ping_progress(0.0)
+        first_step = self.current_ping_steps[0]
+        self.statusBar().showMessage(first_step["phase"])
+        first_step["cable"].set_ping_direction(first_step["from_item"], first_step["to_item"])
+        first_step["cable"].set_ping_progress(0.0, first_step["color"])
         self.ping_animation_timer.start(25)
 
     def advance_ping_animation(self):
-        if not self.current_ping_path:
+        if not self.current_ping_steps:
             self.stop_ping_animation()
             return
 
+        if self.current_ping_pause_ticks > 0:
+            self.current_ping_pause_ticks -= 1
+            return
+
         try:
-            current_cable = self.current_ping_path[self.current_ping_step]
+            current_step = self.current_ping_steps[self.current_ping_step]
+            current_cable = current_step["cable"]
         except (IndexError, RuntimeError):
             self.stop_ping_animation()
             return
         self.current_ping_progress += 0.025
         try:
-            current_cable.set_ping_progress(self.current_ping_progress)
+            current_cable.set_ping_progress(self.current_ping_progress, current_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
             return
@@ -576,20 +764,26 @@ class HomeWindow(QMainWindow):
             return
 
         try:
-            current_cable.set_ping_progress(1.0)
+            current_cable.set_ping_progress(1.0, current_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
             return
         self.current_ping_step += 1
         self.current_ping_progress = 0.0
 
-        if self.current_ping_step >= len(self.current_ping_path):
+        if self.current_ping_step >= len(self.current_ping_steps):
+            self.statusBar().showMessage("Ping terminé", 1200)
             QTimer.singleShot(250, self.stop_ping_animation)
             self.ping_animation_timer.stop()
             return
 
         try:
-            self.current_ping_path[self.current_ping_step].set_ping_progress(0.0)
+            next_step = self.current_ping_steps[self.current_ping_step]
+            if next_step["phase"] != current_step["phase"]:
+                self.statusBar().showMessage(next_step["phase"])
+                self.current_ping_pause_ticks = 8
+            next_step["cable"].set_ping_direction(next_step["from_item"], next_step["to_item"])
+            next_step["cable"].set_ping_progress(0.0, next_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
 
@@ -850,6 +1044,7 @@ class Cable(QGraphicsLineItem):
         self.ping_progress = None
         self.ping_start_item = None
         self.ping_end_item = None
+        self.ping_color = QColor("#20b15a")
         pen = QPen(QColor("black"))
         pen.setWidth(2)
         self.setPen(pen)
@@ -881,14 +1076,17 @@ class Cable(QGraphicsLineItem):
         self.ping_start_item = start_item
         self.ping_end_item = end_item
 
-    def set_ping_progress(self, progress):
+    def set_ping_progress(self, progress, color=None):
         self.ping_progress = progress
+        if color is not None:
+            self.ping_color = color
         self.update()
 
     def stop_ping_animation(self):
         self.ping_progress = None
         self.ping_start_item = None
         self.ping_end_item = None
+        self.ping_color = QColor("#20b15a")
         self.update()
 
     def paint(self, painter, option, widget=None):
@@ -913,7 +1111,7 @@ class Cable(QGraphicsLineItem):
             animated_start = line.pointAt(start_ratio)
             animated_end = line.pointAt(min(self.ping_progress, 1.0))
 
-            ping_pen = QPen(QColor("#20b15a"))
+            ping_pen = QPen(self.ping_color)
             ping_pen.setWidth(6)
             ping_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             painter.setPen(ping_pen)

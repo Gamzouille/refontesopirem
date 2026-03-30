@@ -8,6 +8,12 @@ class ARPTable:
     def get_mac(self, ip):
         return self.table.get(ip, None)
 
+    def items(self):
+        return self.table.items()
+
+    def clear(self):
+        self.table.clear()
+
     def __repr__(self):
         return str(self.table)
 
