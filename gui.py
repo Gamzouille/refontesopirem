@@ -292,10 +292,12 @@ class HomeWindow(QMainWindow):
     def attach_pc_to_item(self, item, pc):
         item.pc = pc
         item.set_device_name(pc.name)
+        item.set_device_subtitle(pc.ip)
 
     def attach_switch_to_item(self, item, sw):
         item.switch = sw
         item.set_device_name(sw.nom)
+        item.set_device_subtitle("")
 
     def remove_device_item(self, item):
         if self.pending_connection_item is item:
@@ -693,11 +695,19 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.on_double_click = None
         self.on_context_menu = None
         self.name_item = None
+        self.subtitle_item = None
 
     def set_device_name(self, name):
         if self.name_item is None:
             self.name_item = QGraphicsSimpleTextItem(self)
         self.name_item.setText(name)
+        self.update_name_style()
+        self.update_name_position()
+
+    def set_device_subtitle(self, subtitle):
+        if self.subtitle_item is None:
+            self.subtitle_item = QGraphicsSimpleTextItem(self)
+        self.subtitle_item.setText(subtitle)
         self.update_name_style()
         self.update_name_position()
 
@@ -711,17 +721,30 @@ class MovablePixmapItem(QGraphicsPixmapItem):
         self.name_item.setBrush(QColor("black"))
         current_scale = self.scale() if self.scale() != 0 else 1.0
         self.name_item.setScale(1.0 / current_scale)
+        if self.subtitle_item is not None:
+            subtitle_font = QFont("Arial")
+            subtitle_font.setPointSize(11)
+            subtitle_font.setBold(False)
+            self.subtitle_item.setFont(subtitle_font)
+            self.subtitle_item.setBrush(QColor("black"))
+            self.subtitle_item.setScale(1.0 / current_scale)
 
     def update_name_position(self):
         if self.name_item is None:
             return
         rect = self.boundingRect()
-        text_rect = self.name_item.boundingRect()
         current_scale = self.scale() if self.scale() != 0 else 1.0
-        effective_text_width = text_rect.width() / current_scale
-        x = (rect.width() - effective_text_width) / 2
+        name_rect = self.name_item.boundingRect()
+        effective_name_width = name_rect.width() / current_scale
+        x = (rect.width() - effective_name_width) / 2
         y = rect.height() + 4
         self.name_item.setPos(x, y)
+        if self.subtitle_item is not None and self.subtitle_item.text():
+            subtitle_rect = self.subtitle_item.boundingRect()
+            effective_subtitle_width = subtitle_rect.width() / current_scale
+            subtitle_x = (rect.width() - effective_subtitle_width) / 2
+            subtitle_y = y + (name_rect.height() / current_scale) + 2
+            self.subtitle_item.setPos(subtitle_x, subtitle_y)
 
     def itemChange(self, change, value):
         if change in (
