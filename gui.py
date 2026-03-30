@@ -395,7 +395,8 @@ class HomeWindow(QMainWindow):
         info_action = menu.addAction("Voir les infos")
         info_action.triggered.connect(lambda: self.on_device_clicked(item))
 
-        cache_action = menu.addAction("Voir le cache ARP")
+        cache_label = "Voir le cache ARP" if hasattr(item, "pc") else "Voir la table MAC"
+        cache_action = menu.addAction(cache_label)
         cache_action.triggered.connect(lambda: self.show_cache_for_item(item))
 
         menu.addSeparator()
@@ -520,7 +521,7 @@ class HomeWindow(QMainWindow):
             lines.append(f"- uplink -> port {port}")
 
         if not lines:
-            return "Cache ARP/MAC vide"
+            return "Table MAC vide"
         return "\n".join(lines)
 
     def show_cache_for_item(self, item):
@@ -535,7 +536,7 @@ class HomeWindow(QMainWindow):
         if hasattr(item, "switch"):
             QMessageBox.information(
                 self,
-                f"Cache ARP/MAC de {item.switch.nom}",
+                f"Table MAC de {item.switch.nom}",
                 self.format_switch_mac_table(item.switch)
             )
             return
