@@ -35,6 +35,7 @@ class PcWindow(QMainWindow):
         input_validator2 = QRegularExpressionValidator(
             QRegularExpression(r"^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$"), self.ip
         )
+        self.ip.setValidator(input_validator2)
         self.mac = QLabel(generate_mac())
 
         self.valider = QPushButton("Valider")
@@ -49,9 +50,28 @@ class PcWindow(QMainWindow):
             layout.addWidget(w)
 
     def validation(self):
+        nom = self.nom.text().strip()
+        ip = self.ip.text().strip()
+
+        if not nom:
+            QMessageBox.warning(self, "Champ requis", "Le nom du PC ne peut pas être vide.")
+            return
+
+        if not self.nom.hasAcceptableInput():
+            QMessageBox.warning(self, "Nom invalide", "Veuillez saisir un nom valide.")
+            return
+
+        if not ip:
+            QMessageBox.warning(self, "Champ requis", "L'adresse IP ne peut pas être vide.")
+            return
+
+        if not self.ip.hasAcceptableInput():
+            QMessageBox.warning(self, "Adresse IP invalide", "Veuillez saisir une adresse IP valide.")
+            return
+
         print("Validé")
         if self.ip_conflict_checker is not None:
-            existing_names = self.ip_conflict_checker(self.ip.text())
+            existing_names = self.ip_conflict_checker(ip)
             if existing_names:
                 names_text = ", ".join(f'"{name}"' for name in existing_names)
                 msg = QMessageBox(self)
@@ -66,7 +86,7 @@ class PcWindow(QMainWindow):
                 if msg.clickedButton() == btn_non:
                     return
 
-        pc = PC(self.nom.text(), self.ip.text(), self.mac.text())
+        pc = PC(nom, ip, self.mac.text())
         self.pc_created.emit(pc)
         print("Création du pc réussie")
         self.window().close()

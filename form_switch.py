@@ -2,7 +2,7 @@ import random
 import sys
 from network import Switch
 from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator, QAction
-from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QSlider, QPushButton
+from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QSlider, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal
 
 
@@ -45,11 +45,27 @@ class SwitchWindow(QMainWindow):
             layout.addWidget(w)
 
     def validation(self):
-        if not self.nom.text() or not self.ports.text():
+        nom = self.nom.text().strip()
+        ports = self.ports.text().strip()
+
+        if not nom:
+            QMessageBox.warning(self, "Champ requis", "Le nom du switch ne peut pas être vide.")
+            return
+
+        if not self.nom.hasAcceptableInput():
+            QMessageBox.warning(self, "Nom invalide", "Veuillez saisir un nom valide.")
+            return
+
+        if not ports:
+            QMessageBox.warning(self, "Champ requis", "Le nombre de ports ne peut pas être vide.")
+            return
+
+        if not self.ports.hasAcceptableInput():
+            QMessageBox.warning(self, "Nombre de ports invalide", "Veuillez saisir un nombre de ports valide.")
             return
 
         print("Validé")
-        sw = Switch(self.nom.text(), int(self.ports.text()))
+        sw = Switch(nom, int(ports))
         self.is_validated = True
         self.switch_created.emit(sw)
         print("Création du switch réussie")
