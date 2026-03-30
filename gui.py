@@ -597,6 +597,37 @@ class HomeWindow(QMainWindow):
 
         return broadcast_path
 
+    def build_broadcast_waves(self, start_item):
+        current_wave = [start_item]
+        visited = {start_item}
+        waves = []
+
+        while current_wave:
+            next_wave = []
+            segments = []
+
+            for current_item in current_wave:
+                for cable in self.cables:
+                    if cable.item1 is current_item:
+                        next_item = cable.item2
+                    elif cable.item2 is current_item:
+                        next_item = cable.item1
+                    else:
+                        continue
+
+                    if next_item in visited:
+                        continue
+
+                    visited.add(next_item)
+                    next_wave.append(next_item)
+                    segments.append((cable, current_item, next_item))
+
+            if segments:
+                waves.append(segments)
+            current_wave = next_wave
+
+        return waves
+
     def learn_switch_mac_along_path(self, source_mac, path):
         for cable, _from_item, to_item in path:
             if hasattr(to_item, "switch"):
@@ -611,7 +642,8 @@ class HomeWindow(QMainWindow):
         steps = []
 
         if source_pc.arp_table.get_mac(destination_pc.ip) != destination_pc.mac:
-            broadcast_path = self.build_broadcast_path(source_item)
+            broadcast_waves = self.build_broadcast_waves(source_item)
+            broadcast_path = [segment for wave in broadcast_waves for segment in wave]
             source_pc.trames_envoyees.append(
                 Trame(
                     source_ip=source_pc.ip,
@@ -623,13 +655,18 @@ class HomeWindow(QMainWindow):
             )
             steps.extend(
                 {
-                    "cable": cable,
-                    "from_item": from_item,
-                    "to_item": to_item,
+                    "segments": [
+                        {
+                            "cable": cable,
+                            "from_item": from_item,
+                            "to_item": to_item,
+                        }
+                        for cable, from_item, to_item in wave
+                    ],
                     "color": QColor("#f39c12"),
                     "phase": "Requête ARP (broadcast)",
                 }
-                for cable, from_item, to_item in broadcast_path
+                for wave in broadcast_waves
             )
             self.learn_switch_mac_along_path(source_pc.mac, broadcast_path)
             destination_pc.arp_table.add_entry(source_pc.ip, source_pc.mac)
@@ -645,9 +682,13 @@ class HomeWindow(QMainWindow):
             )
             steps.extend(
                 {
-                    "cable": cable,
-                    "from_item": from_item,
-                    "to_item": to_item,
+                    "segments": [
+                        {
+                            "cable": cable,
+                            "from_item": from_item,
+                            "to_item": to_item,
+                        }
+                    ],
                     "color": QColor("#3498db"),
                     "phase": "Réponse ARP",
                 }
@@ -667,9 +708,13 @@ class HomeWindow(QMainWindow):
         )
         steps.extend(
             {
-                "cable": cable,
-                "from_item": from_item,
-                "to_item": to_item,
+                "segments": [
+                    {
+                        "cable": cable,
+                        "from_item": from_item,
+                        "to_item": to_item,
+                    }
+                ],
                 "color": QColor("#20b15a"),
                 "phase": "Requête ICMP",
             }
@@ -688,9 +733,13 @@ class HomeWindow(QMainWindow):
         )
         steps.extend(
             {
-                "cable": cable,
-                "from_item": from_item,
-                "to_item": to_item,
+                "segments": [
+                    {
+                        "cable": cable,
+                        "from_item": from_item,
+                        "to_item": to_item,
+                    }
+                ],
                 "color": QColor("#2ecc71"),
                 "phase": "Réponse ICMP",
             }
@@ -701,7 +750,11 @@ class HomeWindow(QMainWindow):
 
     def stop_ping_animation(self):
         self.ping_animation_timer.stop()
-        for cable in {step["cable"] for step in self.current_ping_steps}:
+        for cable in {
+            segment["cable"]
+            for step in self.current_ping_steps
+            for segment in step["segments"]
+        }:
             try:
                 cable.stop_ping_animation()
             except RuntimeError:
@@ -735,8 +788,9 @@ class HomeWindow(QMainWindow):
 
         first_step = self.current_ping_steps[0]
         self.statusBar().showMessage(first_step["phase"])
-        first_step["cable"].set_ping_direction(first_step["from_item"], first_step["to_item"])
-        first_step["cable"].set_ping_progress(0.0, first_step["color"])
+        for segment in first_step["segments"]:
+            segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
+            segment["cable"].set_ping_progress(0.0, first_step["color"])
         self.ping_animation_timer.start(25)
 
     def advance_ping_animation(self):
@@ -750,13 +804,13 @@ class HomeWindow(QMainWindow):
 
         try:
             current_step = self.current_ping_steps[self.current_ping_step]
-            current_cable = current_step["cable"]
         except (IndexError, RuntimeError):
             self.stop_ping_animation()
             return
         self.current_ping_progress += 0.025
         try:
-            current_cable.set_ping_progress(self.current_ping_progress, current_step["color"])
+            for segment in current_step["segments"]:
+                segment["cable"].set_ping_progress(self.current_ping_progress, current_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
             return
@@ -765,7 +819,8 @@ class HomeWindow(QMainWindow):
             return
 
         try:
-            current_cable.set_ping_progress(1.0, current_step["color"])
+            for segment in current_step["segments"]:
+                segment["cable"].set_ping_progress(1.0, current_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
             return
@@ -783,8 +838,9 @@ class HomeWindow(QMainWindow):
             if next_step["phase"] != current_step["phase"]:
                 self.statusBar().showMessage(next_step["phase"])
                 self.current_ping_pause_ticks = 8
-            next_step["cable"].set_ping_direction(next_step["from_item"], next_step["to_item"])
-            next_step["cable"].set_ping_progress(0.0, next_step["color"])
+            for segment in next_step["segments"]:
+                segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
+                segment["cable"].set_ping_progress(0.0, next_step["color"])
         except RuntimeError:
             self.stop_ping_animation()
 
