@@ -525,8 +525,11 @@ class HomeWindow(QMainWindow):
 
     def stop_ping_animation(self):
         self.ping_animation_timer.stop()
-        for cable in self.current_ping_path:
-            cable.stop_ping_animation()
+        for cable in list(self.current_ping_path):
+            try:
+                cable.stop_ping_animation()
+            except RuntimeError:
+                pass
         self.current_ping_path = []
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
@@ -557,14 +560,26 @@ class HomeWindow(QMainWindow):
             self.stop_ping_animation()
             return
 
-        current_cable = self.current_ping_path[self.current_ping_step]
+        try:
+            current_cable = self.current_ping_path[self.current_ping_step]
+        except (IndexError, RuntimeError):
+            self.stop_ping_animation()
+            return
         self.current_ping_progress += 0.025
-        current_cable.set_ping_progress(self.current_ping_progress)
+        try:
+            current_cable.set_ping_progress(self.current_ping_progress)
+        except RuntimeError:
+            self.stop_ping_animation()
+            return
 
         if self.current_ping_progress < 1.0:
             return
 
-        current_cable.set_ping_progress(1.0)
+        try:
+            current_cable.set_ping_progress(1.0)
+        except RuntimeError:
+            self.stop_ping_animation()
+            return
         self.current_ping_step += 1
         self.current_ping_progress = 0.0
 
@@ -573,7 +588,10 @@ class HomeWindow(QMainWindow):
             self.ping_animation_timer.stop()
             return
 
-        self.current_ping_path[self.current_ping_step].set_ping_progress(0.0)
+        try:
+            self.current_ping_path[self.current_ping_step].set_ping_progress(0.0)
+        except RuntimeError:
+            self.stop_ping_animation()
 
     def apply_connection_config(self, item1, item2, config):
         s1 = item1.switch if hasattr(item1, "switch") else None
@@ -714,37 +732,49 @@ class MovablePixmapItem(QGraphicsPixmapItem):
     def update_name_style(self):
         if self.name_item is None:
             return
-        font = QFont("Arial")
-        font.setPointSize(15)
-        font.setBold(False)
-        self.name_item.setFont(font)
-        self.name_item.setBrush(QColor("black"))
-        current_scale = self.scale() if self.scale() != 0 else 1.0
-        self.name_item.setScale(1.0 / current_scale)
-        if self.subtitle_item is not None:
-            subtitle_font = QFont("Arial")
-            subtitle_font.setPointSize(11)
-            subtitle_font.setBold(False)
-            self.subtitle_item.setFont(subtitle_font)
-            self.subtitle_item.setBrush(QColor("black"))
-            self.subtitle_item.setScale(1.0 / current_scale)
+        try:
+            font = QFont("Arial")
+            font.setPointSize(15)
+            font.setBold(False)
+            self.name_item.setFont(font)
+            self.name_item.setBrush(QColor("black"))
+            current_scale = self.scale() if self.scale() != 0 else 1.0
+            self.name_item.setScale(1.0 / current_scale)
+            if self.subtitle_item is not None:
+                subtitle_font = QFont("Arial")
+                subtitle_font.setPointSize(11)
+                subtitle_font.setBold(False)
+                self.subtitle_item.setFont(subtitle_font)
+                self.subtitle_item.setBrush(QColor("black"))
+                self.subtitle_item.setScale(1.0 / current_scale)
+        except RuntimeError:
+            return
 
     def update_name_position(self):
         if self.name_item is None:
             return
-        rect = self.boundingRect()
-        current_scale = self.scale() if self.scale() != 0 else 1.0
-        name_rect = self.name_item.boundingRect()
-        effective_name_width = name_rect.width() / current_scale
-        x = (rect.width() - effective_name_width) / 2
-        y = rect.height() + 4
-        self.name_item.setPos(x, y)
-        if self.subtitle_item is not None and self.subtitle_item.text():
-            subtitle_rect = self.subtitle_item.boundingRect()
-            effective_subtitle_width = subtitle_rect.width() / current_scale
-            subtitle_x = (rect.width() - effective_subtitle_width) / 2
-            subtitle_y = y + (name_rect.height() / current_scale) + 2
-            self.subtitle_item.setPos(subtitle_x, subtitle_y)
+        try:
+            rect = self.boundingRect()
+            current_scale = self.scale() if self.scale() != 0 else 1.0
+            name_rect = self.name_item.boundingRect()
+            effective_name_width = name_rect.width() / current_scale
+            x = (rect.width() - effective_name_width) / 2
+            y = rect.height() + 4
+            self.name_item.setPos(x, y)
+            subtitle_text = ""
+            if self.subtitle_item is not None:
+                try:
+                    subtitle_text = self.subtitle_item.text()
+                except RuntimeError:
+                    subtitle_text = ""
+            if self.subtitle_item is not None and subtitle_text:
+                subtitle_rect = self.subtitle_item.boundingRect()
+                effective_subtitle_width = subtitle_rect.width() / current_scale
+                subtitle_x = (rect.width() - effective_subtitle_width) / 2
+                subtitle_y = y + (name_rect.height() / current_scale) + 2
+                self.subtitle_item.setPos(subtitle_x, subtitle_y)
+        except RuntimeError:
+            return
 
     def itemChange(self, change, value):
         if change in (
@@ -831,11 +861,14 @@ class Cable(QGraphicsLineItem):
         self.update_position()
 
     def update_position(self):
-        if self.scene() is None:
+        try:
+            if self.scene() is None:
+                return
+            p1 = self.item1.sceneBoundingRect().center()
+            p2 = self.item2.sceneBoundingRect().center()
+            self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
+        except RuntimeError:
             return
-        p1 = self.item1.sceneBoundingRect().center()
-        p2 = self.item2.sceneBoundingRect().center()
-        self.setLine(p1.x(), p1.y(), p2.x(), p2.y())
 
     def get_port_for_item(self, item):
         if item is self.item1:
@@ -859,31 +892,34 @@ class Cable(QGraphicsLineItem):
         self.update()
 
     def paint(self, painter, option, widget=None):
-        super().paint(painter, option, widget)
-        if self.ping_progress is None or self.ping_start_item is None or self.ping_end_item is None:
+        try:
+            super().paint(painter, option, widget)
+            if self.ping_progress is None or self.ping_start_item is None or self.ping_end_item is None:
+                return
+
+            if self.ping_start_item is self.item1 and self.ping_end_item is self.item2:
+                start_point = self.line().p1()
+                end_point = self.line().p2()
+            else:
+                start_point = self.line().p2()
+                end_point = self.line().p1()
+
+            line = QLineF(start_point, end_point)
+            if line.length() == 0:
+                return
+
+            segment_length = min(28.0, line.length() * 0.35)
+            start_ratio = max(0.0, self.ping_progress - (segment_length / line.length()))
+            animated_start = line.pointAt(start_ratio)
+            animated_end = line.pointAt(min(self.ping_progress, 1.0))
+
+            ping_pen = QPen(QColor("#20b15a"))
+            ping_pen.setWidth(6)
+            ping_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            painter.setPen(ping_pen)
+            painter.drawLine(animated_start, animated_end)
+        except RuntimeError:
             return
-
-        if self.ping_start_item is self.item1 and self.ping_end_item is self.item2:
-            start_point = self.line().p1()
-            end_point = self.line().p2()
-        else:
-            start_point = self.line().p2()
-            end_point = self.line().p1()
-
-        line = QLineF(start_point, end_point)
-        if line.length() == 0:
-            return
-
-        segment_length = min(28.0, line.length() * 0.35)
-        start_ratio = max(0.0, self.ping_progress - (segment_length / line.length()))
-        animated_start = line.pointAt(start_ratio)
-        animated_end = line.pointAt(min(self.ping_progress, 1.0))
-
-        ping_pen = QPen(QColor("#20b15a"))
-        ping_pen.setWidth(6)
-        ping_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        painter.setPen(ping_pen)
-        painter.drawLine(animated_start, animated_end)
 
 
 
