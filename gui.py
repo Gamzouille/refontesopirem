@@ -597,7 +597,22 @@ class HomeWindow(QMainWindow):
 
         return broadcast_path
 
-    def build_broadcast_waves(self, start_item):
+    def should_forward_arp_broadcast(self, current_item, next_item, destination_item):
+        if not hasattr(current_item, "switch"):
+            return True
+
+        if hasattr(next_item, "switch"):
+            return True
+
+        if not hasattr(next_item, "pc"):
+            return True
+
+        if next_item is destination_item:
+            return True
+
+        return next_item.pc.mac not in current_item.switch.mac_table
+
+    def build_broadcast_waves(self, start_item, destination_item):
         current_wave = [start_item]
         visited = {start_item}
         waves = []
@@ -613,6 +628,9 @@ class HomeWindow(QMainWindow):
                     elif cable.item2 is current_item:
                         next_item = cable.item1
                     else:
+                        continue
+
+                    if not self.should_forward_arp_broadcast(current_item, next_item, destination_item):
                         continue
 
                     if next_item in visited:
@@ -642,7 +660,7 @@ class HomeWindow(QMainWindow):
         steps = []
 
         if source_pc.arp_table.get_mac(destination_pc.ip) != destination_pc.mac:
-            broadcast_waves = self.build_broadcast_waves(source_item)
+            broadcast_waves = self.build_broadcast_waves(source_item, destination_item)
             broadcast_path = [segment for wave in broadcast_waves for segment in wave]
             source_pc.trames_envoyees.append(
                 Trame(
