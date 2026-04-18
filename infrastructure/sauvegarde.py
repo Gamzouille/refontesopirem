@@ -1,8 +1,3 @@
-import json
-import os
-from classes.pc import PC
-
-
 def sauvegarde_json(pc: PC, json_file: str, var_name: str):
     """
     Ajoute un objet Pc dans un fichier JSON et enregistre le nom de variable.

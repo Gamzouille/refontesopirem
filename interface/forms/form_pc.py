@@ -1,8 +1,8 @@
 from PyQt6.QtGui import QRegularExpressionValidator, QIntValidator
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal
-from network import PC
 import random
+from core.devices.pc import PC
 
 
 def generate_mac():
@@ -42,8 +42,8 @@ class PcWindow(QMainWindow):
         self.valider.clicked.connect(self.validation)
 
         widgets = [QLabel("Nom"), self.nom, QLabel("Adresse IP"), self.ip, QLabel("Adresse MAC"), self.mac, QLabel(""), self.valider]
-        for w in widgets:
-            w.show()
+        #for w in widgets:
+        #    w.show()
 
         # --- Placeholder ---
         for w in widgets:

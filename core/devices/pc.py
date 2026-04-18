@@ -1,6 +1,6 @@
-from classes.arptable import ARPTable
-from classes.switch import Switch
-from classes.trame import Trame
+from core.network.arptable import ARPTable
+from core.devices.switch import Switch
+from core.network.trame import Trame
 
 class PC:
 
@@ -115,12 +115,26 @@ class PC:
         item.on_click = self.on_device_single_clicked
         item.on_double_click = self.on_device_clicked
         item.on_context_menu = self.show_empty_context_menu
+
         self.scene.addItem(item)
         self.devices.append(item)
+
         item.setPos(50, 50)
-        self.formPC(item)
         item.setScale(0.5)
 
+        window = PcWindow(
+            ip_conflict_checker=self.find_existing_pc_name_by_ip
+        )
+
+        window.pc_created.connect(
+            lambda pc: self.attach_pc_to_item(item, pc)
+        )
+
+        window.show()
+
+        self._pc_window = window
+
+    @staticmethod
     def formPC(self, item):
         self.formpc_window = PcWindow(ip_conflict_checker=self.find_existing_pc_name_by_ip)
         self.formpc_window.pc_created.connect(

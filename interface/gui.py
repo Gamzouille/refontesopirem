@@ -1,25 +1,19 @@
 import os
 import sys
-from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence, QPainter
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QComboBox, QGraphicsView, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
 from PyQt6.QtCore import Qt, QTimer, QLineF
 import json
 
-from services.ping import build_ping_steps
-from services.connection import disconnect_machine, disconnect_cable, apply_connection_config
-# Import fonctions
-from infrastructure.sauvegarde import sauvegarde_json
+from interface.forms.form_pc import PcWindow
+from services.connection import *
+from services.ping import *
+from core.devices.pc import PC
 
-# Import classes
-from classes.pc import PC
-from classes.arptable import ARPTable
-from classes.switch import Switch
-from classes.trame import Trame
-from classes.form_switch import SwitchWindow
-from classes.form_pc import PcWindow
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 
-with open("scenario.json") as f:
+with open("data/scenario.json") as f:
     data = json.load(f)
 
 print("OK 1")
@@ -57,7 +51,9 @@ class HomeWindow(QMainWindow):
         self.temp_cable = None
         self.active_context_menu = None
         self.ping_animation_timer = QTimer(self)
-        self.ping_animation_timer.timeout.connect(self.advance_ping_animation)
+        self.ping_animation_timer.timeout.connect(
+    lambda: advance_ping_animation(self)
+)
         self.current_ping_steps = []
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
@@ -124,7 +120,7 @@ class HomeWindow(QMainWindow):
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
-        self.btn_switch.triggered.connect(self.ajouteSwitch)
+        self.btn_switch.triggered.connect(lambda: ajouteSwitch(self))
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
@@ -192,6 +188,35 @@ class HomeWindow(QMainWindow):
     def options_periph(self):
         self.option_window = OptionWindow()
         self.option_window.show()
+
+    def ajoutePC(self):
+        print("Je rentre bien ici")
+        pixmap = QPixmap("images/pc_icon.png")
+
+        item = MovablePixmapItem(pixmap)
+        item.device_type = "pc"
+        item.set_device_name("PC")
+        item.on_click = self.on_device_single_clicked
+        item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
+        self.scene.addItem(item)
+        self.devices.append(item)
+        item.setPos(50, 50)
+        #self.formPC(item)
+
+        self.find_existing_pc_name_by_ip = lambda ip: [
+            d.pc.name for d in self.devices if hasattr(d, "pc") and d.pc.ip == ip
+        ]
+
+        item.setScale(0.5)
+        self._pc_window = PcWindow(self.find_existing_pc_name_by_ip)
+        self._pc_window.pc_created.connect(
+        lambda pc: self.attach_pc_to_item(item, pc)
+        )
+        self._pc_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+        self._pc_window.show()
+        self._pc_window.raise_()
+        self._pc_window.activateWindow()
         
         
     def connecter(self):
