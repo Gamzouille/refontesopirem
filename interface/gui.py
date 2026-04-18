@@ -5,8 +5,10 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGr
 from PyQt6.QtCore import Qt, QTimer, QLineF
 import json
 
+from services.ping import build_ping_steps
+from services.connection import disconnect_machine, disconnect_cable, apply_connection_config
 # Import fonctions
-from fonctions.sauvegarde import sauvegarde_json
+from infrastructure.sauvegarde import sauvegarde_json
 
 # Import classes
 from classes.pc import PC
@@ -130,7 +132,102 @@ class HomeWindow(QMainWindow):
         self.escape_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         self.escape_shortcut.activated.connect(self.cancel_connection_mode)
 
-        
+    def launch_ping(self, source_item, destination_item):
+        path = self.find_path_between_items(source_item, destination_item)
+        if not path:
+            QMessageBox.information(
+                self,
+                "Ping",
+                f"Aucun chemin trouvé entre {source_item.pc.name} et {destination_item.pc.name}."
+            )
+            return
+
+        ping_steps = self.build_ping_steps(source_item, destination_item, path)
+
+        self.stop_ping_animation()
+        self.current_ping_steps = ping_steps
+        self.current_ping_step = 0
+        self.current_ping_progress = 0.0
+        self.current_ping_pause_ticks = 0
+
+        if not self.current_ping_steps:
+            return
+
+        first_step = self.current_ping_steps[0]
+        self.statusBar().showMessage(first_step["phase"])
+        for segment in first_step["segments"]:
+            segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
+            segment["cable"].set_ping_progress(0.0, first_step["color"])
+        self.ping_animation_timer.start(25)
+
+def stop_ping_animation(self):
+        self.ping_animation_timer.stop()
+        for cable in {
+            segment["cable"]
+            for step in self.current_ping_steps
+            for segment in step["segments"]
+        }:
+            try:
+                cable.stop_ping_animation()
+            except RuntimeError:
+                pass
+        self.current_ping_steps = []
+        self.current_ping_step = 0
+        self.current_ping_progress = 0.0
+        self.current_ping_pause_ticks = 0
+        self.statusBar().clearMessage()
+
+
+    def advance_ping_animation(self):
+        if not self.current_ping_steps:
+            self.stop_ping_animation()
+            return
+
+        if self.current_ping_pause_ticks > 0:
+            self.current_ping_pause_ticks -= 1
+            return
+
+        try:
+            current_step = self.current_ping_steps[self.current_ping_step]
+        except (IndexError, RuntimeError):
+            self.stop_ping_animation()
+            return
+        self.current_ping_progress += 0.025
+        try:
+            for segment in current_step["segments"]:
+                segment["cable"].set_ping_progress(self.current_ping_progress, current_step["color"])
+        except RuntimeError:
+            self.stop_ping_animation()
+            return
+
+        if self.current_ping_progress < 1.0:
+            return
+
+        try:
+            for segment in current_step["segments"]:
+                segment["cable"].set_ping_progress(1.0, current_step["color"])
+        except RuntimeError:
+            self.stop_ping_animation()
+            return
+        self.current_ping_step += 1
+        self.current_ping_progress = 0.0
+
+        if self.current_ping_step >= len(self.current_ping_steps):
+            self.statusBar().showMessage("Ping terminé", 1200)
+            QTimer.singleShot(250, self.stop_ping_animation)
+            self.ping_animation_timer.stop()
+            return
+
+        try:
+            next_step = self.current_ping_steps[self.current_ping_step]
+            if next_step["phase"] != current_step["phase"]:
+                self.statusBar().showMessage(next_step["phase"])
+                self.current_ping_pause_ticks = 8
+            for segment in next_step["segments"]:
+                segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
+                segment["cable"].set_ping_progress(0.0, next_step["color"])
+        except RuntimeError:
+            self.stop_ping_animation()    
         
     def sceneEventFilter(self, watched, event):
         if event.type() == event.GraphicsSceneMove:
@@ -168,77 +265,7 @@ class HomeWindow(QMainWindow):
             json.dump(data, f, indent=4, ensure_ascii=False)
 
         print("✅ Projet sauvegardé")
-
-
-            
-
-
-    def ajoutePC(self):
-        print("Je rentre bien ici")
-
-        pixmap = QPixmap("images/pc_icon.png")
-
-        item = MovablePixmapItem(pixmap)
-        item.device_type = "pc"
-        item.set_device_name("PC")
-        item.on_click = self.on_device_single_clicked
-        item.on_double_click = self.on_device_clicked
-        item.on_context_menu = self.show_empty_context_menu
-        self.scene.addItem(item)
-        self.devices.append(item)
-        item.setPos(50, 50)
-        self.formPC(item)
-        item.setScale(0.5)
         
-        
-        
-        
-
-    def ajouteSwitch(self):
-        print("Je rentre bien ici")
-
-        pixmap = QPixmap("images/switch_icon.png")
-
-        item = MovablePixmapItem(pixmap)
-        item.device_type = "switch"
-        item.set_device_name("Switch")
-        item.on_click = self.on_device_single_clicked
-        item.on_double_click = self.on_device_clicked
-        item.on_context_menu = self.show_empty_context_menu
-        self.scene.addItem(item)
-        self.devices.append(item)
-        item.setPos(100, 100)
-
-        self.formSwitch(item)
-        item.setScale(1.25)
-        
-        
-
-    def formPC(self, item):
-        self.formpc_window = PcWindow(ip_conflict_checker=self.find_existing_pc_name_by_ip)
-        self.formpc_window.pc_created.connect(
-            lambda pc, current_item=item: self.attach_pc_to_item(current_item, pc)
-        )
-        self.formpc_window.show()
-
-    def find_existing_pc_name_by_ip(self, ip):
-        names = []
-        for device in self.devices:
-            if hasattr(device, "pc") and device.pc.ip == ip:
-                names.append(device.pc.name)
-        return names
-
-    def formSwitch(self, item):
-        self.forms_window = SwitchWindow()
-        self.forms_window.switch_created.connect(
-            lambda sw, current_item=item: self.attach_switch_to_item(current_item, sw)
-        )
-        self.forms_window.cancelled.connect(
-            lambda current_item=item: self.remove_device_item(current_item)
-        )
-        self.forms_window.show()
-
-        #def supprimerPC(self):
 
     def open_file_dialog(self):
         file_filter = 'Data File (*.json)'
@@ -326,46 +353,6 @@ class HomeWindow(QMainWindow):
                 f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}\n\nConnexions:\n{self.build_connections_text(item)}"
             )
             return
-
-    def disconnect_cable(self, cable):
-        item1 = cable.item1
-        item2 = cable.item2
-        p1 = cable.get_port_for_item(item1)
-        p2 = cable.get_port_for_item(item2)
-
-        if hasattr(item1, "switch") and p1 is not None:
-            if hasattr(item2, "pc"):
-                item1.switch.ports[p1] = None
-                if item2.pc.switch is item1.switch and item2.pc.switch_port == p1:
-                    item2.pc.switch = None
-                    item2.pc.switch_port = None
-            elif hasattr(item2, "switch"):
-                item1.switch.uplink_ports = getattr(item1.switch, "uplink_ports", set())
-                item1.switch.uplink_ports.discard(p1)
-
-        if hasattr(item2, "switch") and p2 is not None:
-            if hasattr(item1, "pc"):
-                item2.switch.ports[p2] = None
-                if item1.pc.switch is item2.switch and item1.pc.switch_port == p2:
-                    item1.pc.switch = None
-                    item1.pc.switch_port = None
-            elif hasattr(item1, "switch"):
-                item2.switch.uplink_ports = getattr(item2.switch, "uplink_ports", set())
-                item2.switch.uplink_ports.discard(p2)
-
-        if cable in item1.cables:
-            item1.cables.remove(cable)
-        if cable in item2.cables:
-            item2.cables.remove(cable)
-        if cable in self.cables:
-            self.cables.remove(cable)
-        if cable.scene() is not None:
-            self.scene.removeItem(cable)
-
-    def disconnect_machine(self, item):
-        for cable in list(self.cables):
-            if cable.item1 is item or cable.item2 is item:
-                self.disconnect_cable(cable)
 
     def get_cable_details_for_item(self, item):
         details = []
@@ -540,384 +527,6 @@ class HomeWindow(QMainWindow):
             )
             return
 
-    def find_path_between_items(self, start_item, end_item):
-        if start_item is end_item:
-            return []
-
-        queue = [(start_item, [])]
-        visited = {start_item}
-
-        while queue:
-            current_item, current_path = queue.pop(0)
-            for cable in self.cables:
-                if cable.item1 is current_item:
-                    next_item = cable.item2
-                elif cable.item2 is current_item:
-                    next_item = cable.item1
-                else:
-                    continue
-
-                if next_item in visited:
-                    continue
-
-                next_path = current_path + [(cable, current_item, next_item)]
-                if next_item is end_item:
-                    return next_path
-
-                visited.add(next_item)
-                queue.append((next_item, next_path))
-
-        return None
-
-    def reverse_path(self, path):
-        return [(cable, to_item, from_item) for cable, from_item, to_item in reversed(path)]
-
-    def build_broadcast_path(self, start_item):
-        queue = [(start_item, [])]
-        visited = {start_item}
-        broadcast_path = []
-
-        while queue:
-            current_item, _current_path = queue.pop(0)
-            for cable in self.cables:
-                if cable.item1 is current_item:
-                    next_item = cable.item2
-                elif cable.item2 is current_item:
-                    next_item = cable.item1
-                else:
-                    continue
-
-                if next_item in visited:
-                    continue
-
-                visited.add(next_item)
-                queue.append((next_item, []))
-                broadcast_path.append((cable, current_item, next_item))
-
-        return broadcast_path
-
-    def should_forward_arp_broadcast(self, current_item, next_item, destination_item):
-        if not hasattr(current_item, "switch"):
-            return True
-
-        if hasattr(next_item, "switch"):
-            return True
-
-        if not hasattr(next_item, "pc"):
-            return True
-
-        if next_item is destination_item:
-            return True
-
-        return next_item.pc.mac not in current_item.switch.mac_table
-
-    def build_broadcast_waves(self, start_item, destination_item):
-        current_wave = [start_item]
-        visited = {start_item}
-        waves = []
-
-        while current_wave:
-            next_wave = []
-            segments = []
-
-            for current_item in current_wave:
-                for cable in self.cables:
-                    if cable.item1 is current_item:
-                        next_item = cable.item2
-                    elif cable.item2 is current_item:
-                        next_item = cable.item1
-                    else:
-                        continue
-
-                    if not self.should_forward_arp_broadcast(current_item, next_item, destination_item):
-                        continue
-
-                    if next_item in visited:
-                        continue
-
-                    visited.add(next_item)
-                    next_wave.append(next_item)
-                    segments.append((cable, current_item, next_item))
-
-            if segments:
-                waves.append(segments)
-            current_wave = next_wave
-
-        return waves
-
-    def learn_switch_mac_along_path(self, source_mac, path):
-        for cable, _from_item, to_item in path:
-            if hasattr(to_item, "switch"):
-                incoming_port = cable.get_port_for_item(to_item)
-                if incoming_port is not None:
-                    to_item.switch.mac_table[source_mac] = incoming_port
-
-    def build_ping_steps(self, source_item, destination_item, path):
-        source_pc = source_item.pc
-        destination_pc = destination_item.pc
-        reverse_path = self.reverse_path(path)
-        steps = []
-
-        if source_pc.arp_table.get_mac(destination_pc.ip) != destination_pc.mac:
-            broadcast_waves = self.build_broadcast_waves(source_item, destination_item)
-            broadcast_path = [segment for wave in broadcast_waves for segment in wave]
-            source_pc.trames_envoyees.append(
-                Trame(
-                    source_ip=source_pc.ip,
-                    dest_ip=destination_pc.ip,
-                    source_mac=source_pc.mac,
-                    dest_mac="FF:FF:FF:FF:FF:FF",
-                    type_trame="ARP",
-                )
-            )
-            steps.extend(
-                {
-                    "segments": [
-                        {
-                            "cable": cable,
-                            "from_item": from_item,
-                            "to_item": to_item,
-                        }
-                        for cable, from_item, to_item in wave
-                    ],
-                    "color": QColor("#f39c12"),
-                    "phase": "Requête ARP (broadcast)",
-                }
-                for wave in broadcast_waves
-            )
-            self.learn_switch_mac_along_path(source_pc.mac, broadcast_path)
-            destination_pc.arp_table.add_entry(source_pc.ip, source_pc.mac)
-
-            destination_pc.trames_envoyees.append(
-                Trame(
-                    source_ip=destination_pc.ip,
-                    dest_ip=source_pc.ip,
-                    source_mac=destination_pc.mac,
-                    dest_mac=source_pc.mac,
-                    type_trame="ARP-REPLY",
-                )
-            )
-            steps.extend(
-                {
-                    "segments": [
-                        {
-                            "cable": cable,
-                            "from_item": from_item,
-                            "to_item": to_item,
-                        }
-                    ],
-                    "color": QColor("#3498db"),
-                    "phase": "Réponse ARP",
-                }
-                for cable, from_item, to_item in reverse_path
-            )
-            self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
-            source_pc.arp_table.add_entry(destination_pc.ip, destination_pc.mac)
-
-        source_pc.trames_envoyees.append(
-            Trame(
-                source_ip=source_pc.ip,
-                dest_ip=destination_pc.ip,
-                source_mac=source_pc.mac,
-                dest_mac=destination_pc.mac,
-                type_trame="ICMP",
-            )
-        )
-        steps.extend(
-            {
-                "segments": [
-                    {
-                        "cable": cable,
-                        "from_item": from_item,
-                        "to_item": to_item,
-                    }
-                ],
-                "color": QColor("#20b15a"),
-                "phase": "Requête ICMP",
-            }
-            for cable, from_item, to_item in path
-        )
-        self.learn_switch_mac_along_path(source_pc.mac, path)
-
-        destination_pc.trames_envoyees.append(
-            Trame(
-                source_ip=destination_pc.ip,
-                dest_ip=source_pc.ip,
-                source_mac=destination_pc.mac,
-                dest_mac=source_pc.mac,
-                type_trame="ICMP-REPLY",
-            )
-        )
-        steps.extend(
-            {
-                "segments": [
-                    {
-                        "cable": cable,
-                        "from_item": from_item,
-                        "to_item": to_item,
-                    }
-                ],
-                "color": QColor("#2ecc71"),
-                "phase": "Réponse ICMP",
-            }
-            for cable, from_item, to_item in reverse_path
-        )
-        self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
-        return steps
-
-    def stop_ping_animation(self):
-        self.ping_animation_timer.stop()
-        for cable in {
-            segment["cable"]
-            for step in self.current_ping_steps
-            for segment in step["segments"]
-        }:
-            try:
-                cable.stop_ping_animation()
-            except RuntimeError:
-                pass
-        self.current_ping_steps = []
-        self.current_ping_step = 0
-        self.current_ping_progress = 0.0
-        self.current_ping_pause_ticks = 0
-        self.statusBar().clearMessage()
-
-    def launch_ping(self, source_item, destination_item):
-        path = self.find_path_between_items(source_item, destination_item)
-        if not path:
-            QMessageBox.information(
-                self,
-                "Ping",
-                f"Aucun chemin trouvé entre {source_item.pc.name} et {destination_item.pc.name}."
-            )
-            return
-
-        ping_steps = self.build_ping_steps(source_item, destination_item, path)
-
-        self.stop_ping_animation()
-        self.current_ping_steps = ping_steps
-        self.current_ping_step = 0
-        self.current_ping_progress = 0.0
-        self.current_ping_pause_ticks = 0
-
-        if not self.current_ping_steps:
-            return
-
-        first_step = self.current_ping_steps[0]
-        self.statusBar().showMessage(first_step["phase"])
-        for segment in first_step["segments"]:
-            segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
-            segment["cable"].set_ping_progress(0.0, first_step["color"])
-        self.ping_animation_timer.start(25)
-
-    def advance_ping_animation(self):
-        if not self.current_ping_steps:
-            self.stop_ping_animation()
-            return
-
-        if self.current_ping_pause_ticks > 0:
-            self.current_ping_pause_ticks -= 1
-            return
-
-        try:
-            current_step = self.current_ping_steps[self.current_ping_step]
-        except (IndexError, RuntimeError):
-            self.stop_ping_animation()
-            return
-        self.current_ping_progress += 0.025
-        try:
-            for segment in current_step["segments"]:
-                segment["cable"].set_ping_progress(self.current_ping_progress, current_step["color"])
-        except RuntimeError:
-            self.stop_ping_animation()
-            return
-
-        if self.current_ping_progress < 1.0:
-            return
-
-        try:
-            for segment in current_step["segments"]:
-                segment["cable"].set_ping_progress(1.0, current_step["color"])
-        except RuntimeError:
-            self.stop_ping_animation()
-            return
-        self.current_ping_step += 1
-        self.current_ping_progress = 0.0
-
-        if self.current_ping_step >= len(self.current_ping_steps):
-            self.statusBar().showMessage("Ping terminé", 1200)
-            QTimer.singleShot(250, self.stop_ping_animation)
-            self.ping_animation_timer.stop()
-            return
-
-        try:
-            next_step = self.current_ping_steps[self.current_ping_step]
-            if next_step["phase"] != current_step["phase"]:
-                self.statusBar().showMessage(next_step["phase"])
-                self.current_ping_pause_ticks = 8
-            for segment in next_step["segments"]:
-                segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
-                segment["cable"].set_ping_progress(0.0, next_step["color"])
-        except RuntimeError:
-            self.stop_ping_animation()
-
-    def apply_connection_config(self, item1, item2, config):
-        s1 = item1.switch if hasattr(item1, "switch") else None
-        s2 = item2.switch if hasattr(item2, "switch") else None
-        pc1 = item1.pc if hasattr(item1, "pc") else None
-        pc2 = item2.pc if hasattr(item2, "pc") else None
-
-        if s1 is not None:
-            p1 = config.get("switch1_port")
-            occupied = s1.ports.get(p1)
-            if occupied is not None and occupied is not pc2:
-                QMessageBox.warning(self, "Port occupe", f"Le port {p1} de {s1.nom} est deja utilise.")
-                return False
-            if p1 in getattr(s1, "uplink_ports", set()):
-                QMessageBox.warning(self, "Port occupe", f"Le port {p1} de {s1.nom} est deja utilise.")
-                return False
-
-        if s2 is not None:
-            p2 = config.get("switch2_port")
-            occupied = s2.ports.get(p2)
-            if occupied is not None and occupied is not pc1:
-                QMessageBox.warning(self, "Port occupe", f"Le port {p2} de {s2.nom} est deja utilise.")
-                return False
-            if p2 in getattr(s2, "uplink_ports", set()):
-                QMessageBox.warning(self, "Port occupe", f"Le port {p2} de {s2.nom} est deja utilise.")
-                return False
-
-        if s1 is not None and pc2 is not None:
-            if pc2.switch is not None and pc2.switch is not s1:
-                QMessageBox.warning(self, "PC deja connecte", f"{pc2.name} est deja connecte a {pc2.switch.nom}.")
-                return False
-            if pc2.switch is s1 and pc2.switch_port != config["switch1_port"] and pc2.switch_port in s1.ports:
-                s1.ports[pc2.switch_port] = None
-            s1.connect(config["switch1_port"], pc2)
-            return True
-
-        if s2 is not None and pc1 is not None:
-            if pc1.switch is not None and pc1.switch is not s2:
-                QMessageBox.warning(self, "PC deja connecte", f"{pc1.name} est deja connecte a {pc1.switch.nom}.")
-                return False
-            if pc1.switch is s2 and pc1.switch_port != config["switch2_port"] and pc1.switch_port in s2.ports:
-                s2.ports[pc1.switch_port] = None
-            s2.connect(config["switch2_port"], pc1)
-            return True
-
-        if s1 is not None and s2 is not None:
-            if s1 is s2:
-                QMessageBox.warning(self, "Connexion invalide", "Impossible de connecter un switch a lui-meme.")
-                return False
-            if not hasattr(s1, "uplink_ports"):
-                s1.uplink_ports = set()
-            if not hasattr(s2, "uplink_ports"):
-                s2.uplink_ports = set()
-            s1.uplink_ports.add(config["switch1_port"])
-            s2.uplink_ports.add(config["switch2_port"])
-            return True
-
-        return True
 
     def on_device_single_clicked(self, item):
         if not self.connect_mode:

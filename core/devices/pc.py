@@ -104,6 +104,37 @@ class PC:
     def affiche_mac(self, mac):
         return f"{self.ip}"
     
+    def ajoutePC(self):
+        print("Je rentre bien ici")
+
+        pixmap = QPixmap("images/pc_icon.png")
+
+        item = MovablePixmapItem(pixmap)
+        item.device_type = "pc"
+        item.set_device_name("PC")
+        item.on_click = self.on_device_single_clicked
+        item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
+        self.scene.addItem(item)
+        self.devices.append(item)
+        item.setPos(50, 50)
+        self.formPC(item)
+        item.setScale(0.5)
+
+    def formPC(self, item):
+        self.formpc_window = PcWindow(ip_conflict_checker=self.find_existing_pc_name_by_ip)
+        self.formpc_window.pc_created.connect(
+            lambda pc, current_item=item: self.attach_pc_to_item(current_item, pc)
+        )
+        self.formpc_window.show()
+
+    def find_existing_pc_name_by_ip(self, ip):
+        names = []
+        for device in self.devices:
+            if hasattr(device, "pc") and device.pc.ip == ip:
+                names.append(device.pc.name)
+        return names
+    
     
 
 if __name__ == "__main__":

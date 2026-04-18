@@ -42,3 +42,31 @@ class Switch:
     
     def show(self):
         print(f"{self.nom}, {self.nb_ports}")
+
+    def ajouteSwitch(self):
+        print("Je rentre bien ici")
+
+        pixmap = QPixmap("images/switch_icon.png")
+
+        item = MovablePixmapItem(pixmap)
+        item.device_type = "switch"
+        item.set_device_name("Switch")
+        item.on_click = self.on_device_single_clicked
+        item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
+        self.scene.addItem(item)
+        self.devices.append(item)
+        item.setPos(100, 100)
+
+        self.formSwitch(item)
+        item.setScale(1.25)
+    
+    def formSwitch(self, item):
+        self.forms_window = SwitchWindow()
+        self.forms_window.switch_created.connect(
+            lambda sw, current_item=item: self.attach_switch_to_item(current_item, sw)
+        )
+        self.forms_window.cancelled.connect(
+            lambda current_item=item: self.remove_device_item(current_item)
+        )
+        self.forms_window.show()
