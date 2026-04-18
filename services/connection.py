@@ -94,3 +94,49 @@ def apply_connection_config(self, item1, item2, config):
             return True
 
         return True
+
+def build_connections_text(self, item):
+        lines = []
+        for cable in self.cables:
+            if cable.item1 is item:
+                other = cable.item2
+            elif cable.item2 is item:
+                other = cable.item1
+            else:
+                continue
+
+            other_type = "PC" if hasattr(other, "pc") else "Switch" if hasattr(other, "switch") else "Appareil"
+            other_name = self.get_device_name(other)
+            own_port = cable.get_port_for_item(item)
+            other_port = cable.get_port_for_item(other)
+
+            line = f"- {other_type} {other_name}"
+            port_chunks = []
+            if hasattr(item, "switch") and own_port is not None:
+                port_chunks.append(f"port local: {own_port}")
+            if hasattr(other, "switch") and other_port is not None:
+                port_chunks.append(f"port distant (switch): {other_port}")
+            if port_chunks:
+                line += " | " + " | ".join(port_chunks)
+            lines.append(line)
+
+        if not lines:
+            return "Aucune connexion"
+        return "\n".join(lines)
+
+def get_cable_details_for_item(self, item):
+        details = []
+        for cable in self.cables:
+            if cable.item1 is item:
+                other = cable.item2
+            elif cable.item2 is item:
+                other = cable.item1
+            else:
+                continue
+            details.append({
+                "cable": cable,
+                "other": other,
+                "own_port": cable.get_port_for_item(item),
+                "other_port": cable.get_port_for_item(other),
+            })
+        return details
