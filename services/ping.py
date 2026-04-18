@@ -122,7 +122,7 @@ def build_ping_steps(self, source_item, destination_item, path):
         return steps
 
 def launch_ping(self, source_item, destination_item):
-        path = self.find_path_between_items(source_item, destination_item)
+        path = find_path_between_items(self, source_item, destination_item)
         if not path:
             QMessageBox.information(
                 self,

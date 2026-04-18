@@ -7,8 +7,8 @@ import json
 
 from interface.forms.form_pc import PcWindow
 from interface.forms.form_switch import SwitchWindow
-from services.connection import *
-from services.ping import *
+from services.connection import get_cable_details_for_item, build_connections_text, disconnect_machine
+from services.ping import launch_ping
 from core.devices.pc import PC
 from core.devices.switch import Switch
 
@@ -293,7 +293,7 @@ class HomeWindow(QMainWindow):
     def remove_device_item(self, item):
         if self.pending_connection_item is item:
             self.cancel_connection_mode()
-        self.disconnect_machine(item)
+        disconnect_machine(self, item)
         if item in self.devices:
             self.devices.remove(item)
         if item.scene() is not None:
@@ -305,7 +305,7 @@ class HomeWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Attributs du PC",
-                f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}\n\nConnexions:\n{self.build_connections_text(item)}"
+                f"Nom : {pc.name}\nIP : {pc.ip}\nAdresse MAC : {pc.mac}\n\nConnexions:\n{build_connections_text(self,item)}"
             )
             return
 
@@ -314,7 +314,7 @@ class HomeWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Attributs du switch",
-                f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}\n\nConnexions:\n{self.build_connections_text(item)}"
+                f"Nom : {sw.nom}\nNombre de ports : {len(sw.ports)}\n\nConnexions:\n{build_connections_text(self,item)}"
             )
             return
 
@@ -324,7 +324,7 @@ class HomeWindow(QMainWindow):
         item.setSelected(True)
 
         menu = QMenu(self)
-        cable_details = self.get_cable_details_for_item(item)
+        cable_details = get_cable_details_for_item(self,item)
 
         info_action = menu.addAction("Voir les infos")
         info_action.triggered.connect(lambda: self.on_device_clicked(item))
@@ -352,7 +352,7 @@ class HomeWindow(QMainWindow):
                 for target in pc_targets:
                     action = ping_menu.addAction(target.pc.name)
                     action.triggered.connect(
-                        lambda checked=False, source=item, destination=target: self.launch_ping(source, destination)
+                        lambda checked=False, source=item, destination=target: launch_ping(self, source, destination)
                     )
 
         disconnect_menu = menu.addMenu("Déconnecter")
