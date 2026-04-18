@@ -1,6 +1,6 @@
 import random
 import sys
-from network import Switch
+from core.devices.switch import Switch
 from PyQt6.QtGui import QIntValidator, QRegularExpressionValidator, QAction
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QVBoxLayout, QComboBox, QLineEdit, QSlider, QPushButton, QMessageBox
 from PyQt6.QtCore import Qt, QRegularExpression, pyqtSignal

@@ -6,9 +6,11 @@ from PyQt6.QtCore import Qt, QTimer, QLineF
 import json
 
 from interface.forms.form_pc import PcWindow
+from interface.forms.form_switch import SwitchWindow
 from services.connection import *
 from services.ping import *
 from core.devices.pc import PC
+from core.devices.switch import Switch
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
@@ -120,7 +122,7 @@ class HomeWindow(QMainWindow):
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
         self.btn_pc.triggered.connect(self.ajoutePC)
-        self.btn_switch.triggered.connect(lambda: ajouteSwitch(self))
+        self.btn_switch.triggered.connect(self.ajouteSwitch)
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
@@ -188,6 +190,39 @@ class HomeWindow(QMainWindow):
     def options_periph(self):
         self.option_window = OptionWindow()
         self.option_window.show()
+
+    def ajouteSwitch(self):
+        print("Je rentre bien ici")
+
+        pixmap = QPixmap("images/switch_icon.png")
+
+        item = MovablePixmapItem(pixmap)
+        item.device_type = "switch"
+        item.set_device_name("Switch")
+        item.on_click = self.on_device_single_clicked
+        item.on_double_click = self.on_device_clicked
+        item.on_context_menu = self.show_empty_context_menu
+
+        self.scene.addItem(item)
+        self.devices.append(item)
+        item.setPos(100, 100)
+        item.setScale(1.3)
+        from interface.forms.form_switch import SwitchWindow
+
+        self._switch_window = SwitchWindow()
+
+        self._switch_window.switch_created.connect(
+        lambda sw: self.attach_switch_to_item(item, sw)
+        )
+
+        self._switch_window.cancelled.connect(
+        lambda: self.remove_device_item(item)
+    )
+
+        self._switch_window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
+        self._switch_window.show()
+        self._switch_window.raise_()
+        self._switch_window.activateWindow()
 
     def ajoutePC(self):
         print("Je rentre bien ici")
