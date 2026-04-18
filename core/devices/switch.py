@@ -39,3 +39,6 @@ class Switch:
         """Vide complètement la table MAC du switch."""
         self.mac_table.clear()
         print(f"[{self.nom}] Table MAC vidée.")
+    
+    def show(self):
+        print(f"{self.nom}, {self.nb_ports}")

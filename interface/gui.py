@@ -4,9 +4,6 @@ from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QListWidget, QComboBox, QGraphicsView, QGraphicsSceneMouseEvent, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
 from PyQt6.QtCore import Qt, QTimer, QLineF
 import json
-import network
-from form_pc import PcWindow
-from form_switch import SwitchWindow
 
 # Import fonctions
 from fonctions.sauvegarde import sauvegarde_json
@@ -16,6 +13,8 @@ from classes.pc import PC
 from classes.arptable import ARPTable
 from classes.switch import Switch
 from classes.trame import Trame
+from classes.form_switch import SwitchWindow
+from classes.form_pc import PcWindow
 
 
 with open("scenario.json") as f:
