@@ -227,7 +227,7 @@ def stop_ping_animation(self):
                 segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
                 segment["cable"].set_ping_progress(0.0, next_step["color"])
         except RuntimeError:
-            self.stop_ping_animation()    
+            self.stop_ping_animation()+    
         
     def sceneEventFilter(self, watched, event):
         if event.type() == event.GraphicsSceneMove:
