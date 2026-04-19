@@ -7,8 +7,8 @@ import json
 
 from interface.forms.form_pc import PcWindow
 from interface.forms.form_switch import SwitchWindow
-from services.connection import get_cable_details_for_item, build_connections_text, disconnect_machine
-from services.ping import launch_ping
+from services.connection import get_cable_details_for_item, build_connections_text, disconnect_machine, apply_connection_config
+from services.ping import launch_ping, build_ping_steps, advance_ping_animation
 from core.devices.pc import PC
 from core.devices.switch import Switch
 
@@ -480,7 +480,7 @@ class HomeWindow(QMainWindow):
             if config_dialog.exec() != QDialog.DialogCode.Accepted:
                 return True
             connection_config = config_dialog.get_config()
-            if not self.apply_connection_config(first, item, connection_config):
+            if not apply_connection_config(self, first, item, connection_config):
                 return True
 
         cable = Cable(self.pending_connection_item, item)

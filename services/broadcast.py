@@ -31,7 +31,7 @@ def build_broadcast_waves(self, start_item, destination_item):
                     else:
                         continue
 
-                    if not self.should_forward_arp_broadcast(current_item, next_item, destination_item):
+                    if not should_forward_arp_broadcast(self, current_item, next_item, destination_item):
                         continue
 
                     if next_item in visited:

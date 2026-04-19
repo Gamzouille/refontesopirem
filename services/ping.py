@@ -1,5 +1,10 @@
 from services.path_finding import find_path_between_items, reverse_path
 from services.broadcast import build_broadcast_waves
+from core.network.trame import Trame
+
+from PyQt6.QtGui import QColor, QPalette, QAction, QPixmap, QIcon, QPen, QFont, QShortcut, QKeySequence
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QGridLayout, QLabel, QFileDialog, QComboBox, QGraphicsView, QGraphicsPixmapItem, QGraphicsScene, QGraphicsItem, QGraphicsLineItem, QDialog, QVBoxLayout, QMessageBox, QGraphicsSimpleTextItem, QMenu
+from PyQt6.QtCore import Qt, QTimer, QLineF
 
 def learn_switch_mac_along_path(self, source_mac, path):
         for cable, _from_item, to_item in path:
@@ -11,11 +16,11 @@ def learn_switch_mac_along_path(self, source_mac, path):
 def build_ping_steps(self, source_item, destination_item, path):
         source_pc = source_item.pc
         destination_pc = destination_item.pc
-        reverse_path = self.reverse_path(path)
+        reverse_path_result = reverse_path(self, path)
         steps = []
 
         if source_pc.arp_table.get_mac(destination_pc.ip) != destination_pc.mac:
-            broadcast_waves = self.build_broadcast_waves(source_item, destination_item)
+            broadcast_waves = build_broadcast_waves(self, source_item, destination_item)
             broadcast_path = [segment for wave in broadcast_waves for segment in wave]
             source_pc.trames_envoyees.append(
                 Trame(
@@ -41,7 +46,7 @@ def build_ping_steps(self, source_item, destination_item, path):
                 }
                 for wave in broadcast_waves
             )
-            self.learn_switch_mac_along_path(source_pc.mac, broadcast_path)
+            learn_switch_mac_along_path(self, source_pc.mac, broadcast_path)
             destination_pc.arp_table.add_entry(source_pc.ip, source_pc.mac)
 
             destination_pc.trames_envoyees.append(
@@ -65,9 +70,9 @@ def build_ping_steps(self, source_item, destination_item, path):
                     "color": QColor("#3498db"),
                     "phase": "Réponse ARP",
                 }
-                for cable, from_item, to_item in reverse_path
+                for cable, from_item, to_item in reverse_path_result
             )
-            self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
+            learn_switch_mac_along_path(self, destination_pc.mac, reverse_path_result)
             source_pc.arp_table.add_entry(destination_pc.ip, destination_pc.mac)
 
         source_pc.trames_envoyees.append(
@@ -93,7 +98,7 @@ def build_ping_steps(self, source_item, destination_item, path):
             }
             for cable, from_item, to_item in path
         )
-        self.learn_switch_mac_along_path(source_pc.mac, path)
+        learn_switch_mac_along_path(self, source_pc.mac, path)
 
         destination_pc.trames_envoyees.append(
             Trame(
@@ -116,9 +121,9 @@ def build_ping_steps(self, source_item, destination_item, path):
                 "color": QColor("#2ecc71"),
                 "phase": "Réponse ICMP",
             }
-            for cable, from_item, to_item in reverse_path
+            for cable, from_item, to_item in reverse_path_result
         )
-        self.learn_switch_mac_along_path(destination_pc.mac, reverse_path)
+        learn_switch_mac_along_path(self, destination_pc.mac, reverse_path_result)
         return steps
 
 def launch_ping(self, source_item, destination_item):
@@ -131,9 +136,9 @@ def launch_ping(self, source_item, destination_item):
             )
             return
 
-        ping_steps = self.build_ping_steps(source_item, destination_item, path)
+        ping_steps = build_ping_steps(self, source_item, destination_item, path)
 
-        self.stop_ping_animation()
+        stop_ping_animation(self)
         self.current_ping_steps = ping_steps
         self.current_ping_step = 0
         self.current_ping_progress = 0.0
