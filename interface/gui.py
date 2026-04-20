@@ -118,7 +118,6 @@ class HomeWindow(QMainWindow):
         self.btn_new = QAction("Nouveau projet")
         self.btn_open = QAction("Ouvrir")
         self.btn_save = QAction("Enregistrer")
-        self.btn_resave = QAction("Enregistrer sous")
 
         self.btn_pc = QAction(" Ajouter un PC")
         self.btn_switch = QAction(" Ajouter un switch")
@@ -131,7 +130,6 @@ class HomeWindow(QMainWindow):
         file_menu.addAction(self.btn_new)
         file_menu.addAction(self.btn_open)
         file_menu.addAction(self.btn_save)
-        file_menu.addAction(self.btn_resave)
         file_menu.addAction(self.btn_quit)
 
         periph_menu.addAction(self.btn_pc)
