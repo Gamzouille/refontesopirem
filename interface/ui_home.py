@@ -1,11 +1,12 @@
 import sys
+import os
 from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QTimer
-from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QFileDialog
 
 class HomeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Accueil - Soupir'âme")
+        self.setWindowTitle("Accueil - Sopirem")
         self.resize(500, 300)
 
         # --- Centrer la fenêtre sur l'écran ---
@@ -23,7 +24,7 @@ class HomeWindow(QMainWindow):
         central.setLayout(layout)
 
         # --- Titre ---
-        self.title = QLabel("Bienvenue sur Soupir'âme")
+        self.title = QLabel("Bienvenue sur Sopirem")
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title.setStyleSheet("font-size: 24px; font-weight: bold;")
         layout.addStretch(1)
@@ -63,7 +64,7 @@ class HomeWindow(QMainWindow):
 
         # --- Connexions boutons ---
         self.btn_new.clicked.connect(self.create_project)
-        self.btn_import.clicked.connect(self.import_project)
+        self.btn_import.clicked.connect(self.open_project)
         self.btn_quit.clicked.connect(self.close)
 
         # --- Animation d'apparition de la fenêtre ---
@@ -81,6 +82,24 @@ class HomeWindow(QMainWindow):
         self.anim.setEndValue(1)
         self.anim.start()
 
+    def open_project(self):
+        file_filter = 'Data File (*.json)'
+        response = QFileDialog.getOpenFileName(
+        parent=self,
+        caption="Ouvrir un projet",
+        directory=os.getcwd(),
+        filter=file_filter,
+        initialFilter=file_filter,
+    )
+        if not response[0]:
+            return
+
+        from interface.gui import HomeWindow as GUIWindow  # bien importer gui.py et pas ui_home.py
+        self.gui_window = GUIWindow()
+        self.gui_window.show()
+        self.gui_window.open_project_from_file(response[0])
+        self.close()
+
     def animate_underline(self):
         title_geom = self.title.geometry()
         start_rect = QRect(title_geom.x(), title_geom.y() + title_geom.height() + 5, 0, 3)
@@ -96,11 +115,6 @@ class HomeWindow(QMainWindow):
         self.project_window = GuiHomeWindow()
         self.project_window.show()
         self.close()
-
-
-    def import_project(self):
-        self.title.setText("Importation d’un projet")
-
 
 
 # --- Lancement de l'application ---

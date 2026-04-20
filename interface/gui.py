@@ -45,6 +45,20 @@ class HomeWindow(QMainWindow):
         self.scene.setBackgroundBrush(QColor("white"))
         self.view.setStyleSheet("background: white;")
 
+        # --- Overlay trame ---
+        self.trame_overlay = QLabel(self.view)
+        self.trame_overlay.setStyleSheet("""
+            background-color: rgba(30, 30, 30, 210);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 13px;
+        """)
+        self.trame_overlay.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.trame_overlay.hide()
+        self.trame_overlay.setMinimumWidth(320)
+
         # --- devices gestion --- 
         self.devices = []  # liste de tous les QGraphicsPixmapItem ajoutés
         self.cables = []
@@ -109,6 +123,9 @@ class HomeWindow(QMainWindow):
         self.btn_pc = QAction(" Ajouter un PC")
         self.btn_switch = QAction(" Ajouter un switch")
         self.btn_quit = QAction(" Quitter")
+
+        self.btn_clear = QAction("Tout effacer")
+        self.btn_menu = QAction("Retour au menu")
         
         # --- Ajout des actions ---
         file_menu.addAction(self.btn_new)
@@ -116,8 +133,12 @@ class HomeWindow(QMainWindow):
         file_menu.addAction(self.btn_save)
         file_menu.addAction(self.btn_resave)
         file_menu.addAction(self.btn_quit)
+
         periph_menu.addAction(self.btn_pc)
         periph_menu.addAction(self.btn_switch)
+
+        option_menu.addAction(self.btn_clear)
+        option_menu.addAction(self.btn_menu)
 
         # --- Connexions ---
         self.btn_new.triggered.connect(self.create_project)
@@ -126,16 +147,125 @@ class HomeWindow(QMainWindow):
         self.btn_quit.triggered.connect(self.close)
         self.btn_save.triggered.connect(self.save)
         self.btn_open.triggered.connect(self.open_file_dialog)
+        self.btn_clear.triggered.connect(self.clear_project)
+        self.btn_menu.triggered.connect(self.return_to_home)
 
         self.escape_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         self.escape_shortcut.activated.connect(self.cancel_connection_mode)
 
+    def open_project_from_file(self, filepath):
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        for item in list(self.devices):
+            self.remove_device_item(item)
+
+        indexed_items = {}
+
+        for i, pc_data in enumerate(data.get("PC", [])):
+            pc = PC.from_dict(pc_data)
+            pixmap = QPixmap("images/pc_icon.png")
+            item = MovablePixmapItem(pixmap)
+            item.device_type = "pc"
+            item.on_click = self.on_device_single_clicked
+            item.on_double_click = self.on_device_clicked
+            item.on_context_menu = self.show_empty_context_menu
+            item.setScale(0.5)
+            self.scene.addItem(item)
+            self.devices.append(item)
+            self.attach_pc_to_item(item, pc)
+            pos = pc_data.get("pos", {"x": 50, "y": 50})
+            item.setPos(pos["x"], pos["y"])
+            indexed_items[i] = item
+
+        offset = len(data.get("PC", []))
+        for i, sw_data in enumerate(data.get("Switch", [])):
+            sw = Switch.from_dict(sw_data)
+            pixmap = QPixmap("images/switch_icon.png")
+            item = MovablePixmapItem(pixmap)
+            item.device_type = "switch"
+            item.on_click = self.on_device_single_clicked
+            item.on_double_click = self.on_device_clicked
+            item.on_context_menu = self.show_empty_context_menu
+            item.setScale(1.3)
+            self.scene.addItem(item)
+            self.devices.append(item)
+            self.attach_switch_to_item(item, sw)
+            pos = sw_data.get("pos", {"x": 100, "y": 100})
+            item.setPos(pos["x"], pos["y"])
+            indexed_items[offset + i] = item
+
+        for cable_data in data.get("Cables", []):
+            item1 = indexed_items.get(cable_data["item1"])
+            item2 = indexed_items.get(cable_data["item2"])
+            config = cable_data.get("config", {})
+            if item1 is None or item2 is None:
+                continue
+            if config:
+                if not apply_connection_config(self, item1, item2, config):
+                    continue
+            cable = Cable(item1, item2)
+            cable.connection_config = config
+            self.scene.addItem(cable)
+            cable.update_position()
+            self.cables.append(cable)
         
     def sceneEventFilter(self, watched, event):
         if event.type() == event.GraphicsSceneMove:
             for c in self.cables:
                 c.update_position()
         return False
+    
+    def clear_project(self):
+        if not self.devices:
+            return
+        reply = QMessageBox.question(
+            self,
+        "Effacer le projet",
+        "Voulez-vous effacer tous les appareils ?",
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+    )
+        if reply == QMessageBox.StandardButton.Yes:
+            for item in list(self.devices):
+                self.remove_device_item(item)
+            self.cables.clear()
+
+    def return_to_home(self):
+        if self.devices:
+            reply = QMessageBox.question(
+            self,
+            "Retour au menu",
+            "Voulez-vous enregistrer le projet avant de quitter ?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel
+        )
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+            if reply == QMessageBox.StandardButton.Yes:
+                self.save()
+
+        from interface.ui_home import HomeWindow as UIHome
+        self.home_window = UIHome()
+        self.home_window.show()
+        self.close()
+    
+    def show_trame_overlay(self, source_mac, dest_mac, source_ip, dest_ip, type_trame):
+        lines = [
+        f"  Type       : {type_trame}",
+        f"  MAC src    : {source_mac}",
+        f"  MAC dst    : {dest_mac}",
+        f"  IP src     : {source_ip}",
+        f"  IP dst     : {dest_ip}",
+    ]
+        self.trame_overlay.setText("\n".join(lines))
+        self.trame_overlay.adjustSize()
+        # Centrer en haut de la vue
+        view_width = self.view.width()
+        self.trame_overlay.move((view_width - self.trame_overlay.width()) // 2, 16)
+        self.trame_overlay.show()
+        self.trame_overlay.raise_()
+
+    def hide_trame_overlay(self):
+        self.trame_overlay.hide()
 
     def on_scene_mouse_move(self, scene_pos):
         if not self.connect_mode or self.pending_connection_item is None or self.temp_cable is None:
@@ -146,30 +276,44 @@ class HomeWindow(QMainWindow):
 
     def save(self):
         fichier, _ = QFileDialog.getSaveFileName(
-        self,
-        "Enregistrer",
-        "",
-        "Fichiers JSON (*.json)"
+        self, "Enregistrer", "", "Fichiers JSON (*.json)"
     )
-
         if not fichier:
             return
 
+    # Associer chaque item à un index unique
+        item_index = {item: i for i, item in enumerate(self.devices)}
+
         data = {
         "PC": [],
-        "Switch": []
+        "Switch": [],
+        "Cables": []
     }
 
-        for i, item in enumerate(self.devices):
+        for item in self.devices:
+            pos = {"x": item.pos().x(), "y": item.pos().y()}
             if hasattr(item, "pc"):
-                data["PC"].append(item.pc.to_dict())
+                d = item.pc.to_dict()
+                d["pos"] = pos
+                data["PC"].append(d)
             elif hasattr(item, "switch"):
-                data["Switch"].append(item.switch.to_dict())
+                d = item.switch.to_dict()
+                d["pos"] = pos
+                data["Switch"].append(d)
+
+        for cable in self.cables:
+            if cable.item1 not in item_index or cable.item2 not in item_index:
+                continue
+            data["Cables"].append({
+                "item1": item_index[cable.item1],
+                "item2": item_index[cable.item2],
+                "config": cable.connection_config
+            })
 
         with open(fichier, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
-        print("Projet sauvegardé")
+        print("✅ Projet sauvegardé")
         
 
     def open_file_dialog(self):
@@ -181,34 +325,65 @@ class HomeWindow(QMainWindow):
         filter=file_filter,
         initialFilter=file_filter,
     )
-        if response[0]:
-            with open(response[0], 'r', encoding='utf-8') as f:
-                data = json.load(f)
+        if not response[0]:
+            return
 
-            for pc_data in data.get("PC", []):
-                pc = PC.from_dict(pc_data)
-                pixmap = QPixmap("images/pc_icon.png")
-                item = MovablePixmapItem(pixmap)
-                item.device_type = "pc"
-                item.on_click = self.on_device_single_clicked
-                item.on_double_click = self.on_device_clicked
-                item.on_context_menu = self.show_empty_context_menu
-                item.setScale(0.5)
-                self.scene.addItem(item)
-                self.devices.append(item)
-                self.attach_pc_to_item(item, pc)
-            for sw_data in data.get("Switch", []):
-                sw = Switch.from_dict(sw_data)
-                pixmap = QPixmap("images/switch_icon.png")
-                item = MovablePixmapItem(pixmap)
-                item.device_type = "switch"
-                item.on_click = self.on_device_single_clicked
-                item.on_double_click = self.on_device_clicked
-                item.on_context_menu = self.show_empty_context_menu
-                item.setScale(1.3)
-                self.scene.addItem(item)
-                self.devices.append(item)
-                self.attach_switch_to_item(item, sw)
+        with open(response[0], 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+    # Vider la scène actuelle
+        for item in list(self.devices):
+            self.remove_device_item(item)
+
+        indexed_items = {}  # index -> item, pour reconstruire les câbles
+
+        for i, pc_data in enumerate(data.get("PC", [])):
+            pc = PC.from_dict(pc_data)
+            pixmap = QPixmap("images/pc_icon.png")
+            item = MovablePixmapItem(pixmap)
+            item.device_type = "pc"
+            item.on_click = self.on_device_single_clicked
+            item.on_double_click = self.on_device_clicked
+            item.on_context_menu = self.show_empty_context_menu
+            item.setScale(0.5)
+            self.scene.addItem(item)
+            self.devices.append(item)
+            self.attach_pc_to_item(item, pc)
+            pos = pc_data.get("pos", {"x": 50, "y": 50})
+            item.setPos(pos["x"], pos["y"])
+            indexed_items[i] = item
+
+        offset = len(data.get("PC", []))
+        for i, sw_data in enumerate(data.get("Switch", [])):
+            sw = Switch.from_dict(sw_data)
+            pixmap = QPixmap("images/switch_icon.png")
+            item = MovablePixmapItem(pixmap)
+            item.device_type = "switch"
+            item.on_click = self.on_device_single_clicked
+            item.on_double_click = self.on_device_clicked
+            item.on_context_menu = self.show_empty_context_menu
+            item.setScale(1.3)
+            self.scene.addItem(item)
+            self.devices.append(item)
+            self.attach_switch_to_item(item, sw)
+            pos = sw_data.get("pos", {"x": 100, "y": 100})
+            item.setPos(pos["x"], pos["y"])
+            indexed_items[offset + i] = item
+
+        for cable_data in data.get("Cables", []):
+            item1 = indexed_items.get(cable_data["item1"])
+            item2 = indexed_items.get(cable_data["item2"])
+            config = cable_data.get("config", {})
+            if item1 is None or item2 is None:
+                continue
+            if config:
+                if not apply_connection_config(self, item1, item2, config):
+                    continue
+            cable = Cable(item1, item2)
+            cable.connection_config = config
+            self.scene.addItem(cable)
+            cable.update_position()
+            self.cables.append(cable)
 
     def create_project(self):
         self.project_window = ProjectWindow()
@@ -366,6 +541,8 @@ class HomeWindow(QMainWindow):
         connect_action.triggered.connect(lambda: self.connecter_depuis_item(item))
 
         if hasattr(item, "pc"):
+            clear_cache_action = menu.addAction("Vider le cache ARP")
+            clear_cache_action.triggered.connect(lambda: self.clear_cache_for_item(item))
             ping_menu = menu.addMenu("Ping")
             pc_targets = [
                 device for device in self.devices
@@ -432,6 +609,14 @@ class HomeWindow(QMainWindow):
             return item.switch.nom
         return "Appareil"
 
+    def clear_cache_for_item(self, item):
+        if hasattr(item, "pc"):
+            item.pc.empty_arp_table()
+            QMessageBox.information(
+            self,
+            "Cache ARP vidé",
+            f"Le cache ARP de {item.pc.name} a été vidé."
+        )
 
     def format_pc_arp_cache(self, pc):
         entries = []
@@ -664,6 +849,39 @@ class NetworkGraphicsView(QGraphicsView):
             event.accept()
             return
         super().mousePressEvent(event)
+    
+    def contextMenuEvent(self, event):
+        scene_pos = self.mapToScene(event.pos())
+        items = self.scene().items(scene_pos)
+        device_items = [i for i in items if isinstance(i, QGraphicsPixmapItem)]
+    
+        if device_items:
+            super().contextMenuEvent(event)
+            return
+
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+        QMenu {
+            background-color: white;
+            color: black;
+            border: 1px solid #ddd;
+        }
+        QMenu::item:selected {
+            background-color: #f0f0f0;
+            color: black;
+        }
+    """)
+        add_pc_action = menu.addAction("Ajouter un PC")
+        add_switch_action = menu.addAction("Ajouter un Switch")
+        menu.addSeparator()
+        clear_action = menu.addAction("Tout effacer")
+
+        add_pc_action.triggered.connect(self.parent_window.ajoutePC)
+        add_switch_action.triggered.connect(self.parent_window.ajouteSwitch)
+        clear_action.triggered.connect(self.parent_window.clear_project)
+
+        menu.exec(event.globalPos())
+        event.accept()
 
 
 class Cable(QGraphicsLineItem):
