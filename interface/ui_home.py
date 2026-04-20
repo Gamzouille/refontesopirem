@@ -41,27 +41,12 @@ class HomeWindow(QMainWindow):
         # --- Boutons ---
         self.btn_new = QPushButton("Créer un nouveau projet")
         self.btn_import = QPushButton("Importer un projet existant")
-        self.btn_default = QPushButton("Ouvrir l'exercice par défaut")  # nouveau bouton
         self.btn_quit = QPushButton("Quitter")
 
-        for btn in (self.btn_new, self.btn_import, self.btn_default, self.btn_quit):
+        for btn in (self.btn_new, self.btn_import, self.btn_quit):
             btn.setFixedHeight(40)
             # Couleur différente pour le bouton par défaut
-            if btn == self.btn_default:
-                btn.setStyleSheet("""
-                    QPushButton {
-                        font-size: 16px;
-                        border-radius: 12px;
-                        background-color: #2196F3;
-                        color: white;
-                        padding: 5px;
-                    }
-                    QPushButton:hover {
-                        background-color: #1976D2;
-                    }
-                """)
-            else:
-                btn.setStyleSheet("""
+            btn.setStyleSheet("""
                     QPushButton {
                         font-size: 16px;
                         border-radius: 12px;
@@ -79,7 +64,6 @@ class HomeWindow(QMainWindow):
         # --- Connexions boutons ---
         self.btn_new.clicked.connect(self.create_project)
         self.btn_import.clicked.connect(self.import_project)
-        self.btn_default.clicked.connect(self.open_default_exercise)
         self.btn_quit.clicked.connect(self.close)
 
         # --- Animation d'apparition de la fenêtre ---
@@ -108,20 +92,15 @@ class HomeWindow(QMainWindow):
     # --- Actions boutons ---
     def create_project(self):
         """Ouvre la fenêtre principale du projet (gui.py) et ferme ui_home"""
-        from gui import HomeWindow as GuiHomeWindow  # Import local pour éviter les boucles
+        from interface.gui import HomeWindow as GuiHomeWindow  # Import local pour éviter les boucles
         self.project_window = GuiHomeWindow()
         self.project_window.show()
         self.close()
 
 
     def import_project(self):
-        self.title.setText("Importation d’un projet (placeholder)")
+        self.title.setText("Importation d’un projet")
 
-    def open_default_exercise(self):
-        """Ouvre la fenêtre correspondant à l'exercice par défaut"""
-        self.project_window = ProjectWindow()  # Ici on peut créer une classe spécifique plus tard
-        self.project_window.show()
-        self.close()
 
 
 # --- Lancement de l'application ---
