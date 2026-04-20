@@ -7,7 +7,7 @@ import json
 
 from interface.forms.form_pc import PcWindow
 from interface.forms.form_switch import SwitchWindow
-from services.connection import get_cable_details_for_item, build_connections_text, disconnect_machine, apply_connection_config
+from services.connection import get_cable_details_for_item, build_connections_text, disconnect_machine, apply_connection_config, disconnect_cable
 from services.ping import launch_ping, build_ping_steps, advance_ping_animation
 from core.devices.pc import PC
 from core.devices.switch import Switch
@@ -384,7 +384,7 @@ class HomeWindow(QMainWindow):
                 if hasattr(other, "switch") and other_port is not None:
                     label += f" (port distant {other_port})"
                 action = disconnect_menu.addAction(label)
-                action.triggered.connect(lambda checked=False, c=detail["cable"]: self.disconnect_cable(c))
+                action.triggered.connect(lambda checked=False, c=detail["cable"]: disconnect_cable(self, c))
 
         menu.addSeparator()
         delete_action = menu.addAction("Supprimer")

@@ -174,7 +174,7 @@ def stop_ping_animation(self):
 
 def advance_ping_animation(self):
         if not self.current_ping_steps:
-            self.stop_ping_animation()
+            stop_ping_animation(self)
             return
 
         if self.current_ping_pause_ticks > 0:
@@ -184,14 +184,14 @@ def advance_ping_animation(self):
         try:
             current_step = self.current_ping_steps[self.current_ping_step]
         except (IndexError, RuntimeError):
-            self.stop_ping_animation()
+            stop_ping_animation(self)
             return
         self.current_ping_progress += 0.025
         try:
             for segment in current_step["segments"]:
                 segment["cable"].set_ping_progress(self.current_ping_progress, current_step["color"])
         except RuntimeError:
-            self.stop_ping_animation()
+            stop_ping_animation(self)
             return
 
         if self.current_ping_progress < 1.0:
@@ -201,14 +201,14 @@ def advance_ping_animation(self):
             for segment in current_step["segments"]:
                 segment["cable"].set_ping_progress(1.0, current_step["color"])
         except RuntimeError:
-            self.stop_ping_animation()
+            stop_ping_animation(self)
             return
         self.current_ping_step += 1
         self.current_ping_progress = 0.0
 
         if self.current_ping_step >= len(self.current_ping_steps):
             self.statusBar().showMessage("Ping terminé", 1200)
-            QTimer.singleShot(250, self.stop_ping_animation)
+            QTimer.singleShot(250, lambda: stop_ping_animation(self))
             self.ping_animation_timer.stop()
             return
 
@@ -221,4 +221,4 @@ def advance_ping_animation(self):
                 segment["cable"].set_ping_direction(segment["from_item"], segment["to_item"])
                 segment["cable"].set_ping_progress(0.0, next_step["color"])
         except RuntimeError:
-            self.stop_ping_animation()
+            stop_ping_animation(self)
