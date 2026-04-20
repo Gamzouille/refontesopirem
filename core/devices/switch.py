@@ -4,6 +4,19 @@ class Switch:
         self.ports = {i: None for i in range(1, nb_ports + 1)}  # ports vides
         self.mac_table = {}  # Table MAC: mac -> port
 
+    def to_dict(self):
+        return {
+        "nom": self.nom,
+        "nb_ports": len(self.ports)
+    }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+        nom=data["nom"],
+        nb_ports=data["nb_ports"]
+    )
+
     def connect(self, port_number, pc):
         self.ports[port_number] = pc
         pc.switch = self

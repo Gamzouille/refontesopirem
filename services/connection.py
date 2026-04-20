@@ -36,7 +36,7 @@ def disconnect_cable(self, cable):
 def disconnect_machine(self, item):
         for cable in list(self.cables):
             if cable.item1 is item or cable.item2 is item:
-                self.disconnect_cable(cable)
+                disconnect_cable(self, cable)
 def apply_connection_config(self, item1, item2, config):
         s1 = item1.switch if hasattr(item1, "switch") else None
         s2 = item2.switch if hasattr(item2, "switch") else None

@@ -146,41 +146,69 @@ class HomeWindow(QMainWindow):
 
     def save(self):
         fichier, _ = QFileDialog.getSaveFileName(
-            self,
-            "Enregistrer",
-            "",
-            "Fichiers JSON (*.json)"
-        )
+        self,
+        "Enregistrer",
+        "",
+        "Fichiers JSON (*.json)"
+    )
 
         if not fichier:
             return
 
         data = {
-            "PC": []
-        }
+        "PC": [],
+        "Switch": []
+    }
 
         for i, item in enumerate(self.devices):
             if hasattr(item, "pc"):
                 data["PC"].append(item.pc.to_dict())
+            elif hasattr(item, "switch"):
+                data["Switch"].append(item.switch.to_dict())
 
         with open(fichier, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
 
-        print("✅ Projet sauvegardé")
+        print("Projet sauvegardé")
         
 
     def open_file_dialog(self):
         file_filter = 'Data File (*.json)'
         response = QFileDialog.getOpenFileName(
-            parent=self,
-            caption="Open file",
-            directory=os.getcwd(),
-            filter=file_filter,
-            initialFilter=file_filter,
-        )
+        parent=self,
+        caption="Open file",
+        directory=os.getcwd(),
+        filter=file_filter,
+        initialFilter=file_filter,
+    )
         if response[0]:
             with open(response[0], 'r', encoding='utf-8') as f:
                 data = json.load(f)
+
+            for pc_data in data.get("PC", []):
+                pc = PC.from_dict(pc_data)
+                pixmap = QPixmap("images/pc_icon.png")
+                item = MovablePixmapItem(pixmap)
+                item.device_type = "pc"
+                item.on_click = self.on_device_single_clicked
+                item.on_double_click = self.on_device_clicked
+                item.on_context_menu = self.show_empty_context_menu
+                item.setScale(0.5)
+                self.scene.addItem(item)
+                self.devices.append(item)
+                self.attach_pc_to_item(item, pc)
+            for sw_data in data.get("Switch", []):
+                sw = Switch.from_dict(sw_data)
+                pixmap = QPixmap("images/switch_icon.png")
+                item = MovablePixmapItem(pixmap)
+                item.device_type = "switch"
+                item.on_click = self.on_device_single_clicked
+                item.on_double_click = self.on_device_clicked
+                item.on_context_menu = self.show_empty_context_menu
+                item.setScale(1.3)
+                self.scene.addItem(item)
+                self.devices.append(item)
+                self.attach_switch_to_item(item, sw)
 
     def create_project(self):
         self.project_window = ProjectWindow()

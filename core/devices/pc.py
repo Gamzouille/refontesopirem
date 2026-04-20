@@ -20,6 +20,21 @@ class PC:
         self.switch = None
         self.switch_port = None
 
+    def to_dict(self):
+        return {
+        "name": self.name,
+        "ip": self.ip,
+        "mac": self.mac
+    }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+        name=data["name"],
+        ip=data["ip"],
+        mac=data["mac"]
+    )
+
     def receive_trame(self, trame):
         print(f"[{self.name}] Reçu {trame}")
 
