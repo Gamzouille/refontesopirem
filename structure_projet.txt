@@ -1,0 +1,38 @@
+soupirame/
+├── .gitignore
+├── README.md
+├── core
+│   ├── devices
+│   │   ├── pc.py
+│   │   └── switch.py
+│   └── network
+│       ├── arptable.py
+│       └── trame.py
+├── data
+│   ├── sauvegardes
+│   │   └── test.json
+│   └── scenario.json
+├── images
+│   ├── pc_icon.png
+│   └── switch_icon.png
+├── infrastructure
+│   ├── lecture.py
+│   └── sauvegarde.py
+├── interface
+│   ├── forms
+│   │   ├── form_pc.py
+│   │   └── form_switch.py
+│   ├── gui.py
+│   ├── option_window.py
+│   └── ui_home.py
+├── main.py
+├── services
+│   ├── __init__.py
+│   ├── broadcast.py
+│   ├── connection.py
+│   ├── path_finding.py
+│   └── ping.py
+├── structure_projet.txt
+└── utils
+    ├── structure-maker.py
+    └── structure_projet.txt
