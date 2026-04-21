@@ -1,4 +1,4 @@
-# Soupirame
+# Sopirem
 
 Simulateur de réseau informatique avec interface graphique. Crée des PC et des switchs virtuels, relie-les entre eux, et simule des échanges réseau (ping, ARP, trames).
 
