@@ -14,17 +14,27 @@ Simulateur de réseau informatique avec interface graphique. Crée des PC et des
 git clone https://gitlab.com/siollb/refontesopirem.git
 cd refontesopirem
 
-# 2. Installer la dépendance
+# 2. Créer un environnement virtuel
+python3 -m venv venv
+
+# 3. Activer l'environnement virtuel
+source venv/bin/activate        # macOS / Linux
+venv\Scripts\activate           # Windows
+
+# 4. Installer la dépendance
 pip install PyQt6
 ```
 
+> L'environnement virtuel isole les dépendances du projet. Il faut le recréer à chaque nouveau clone.
+
 ## Lancer l'application
 
+Active d'abord le venv si ce n'est pas déjà fait, puis :
+
 ```bash
+source venv/bin/activate   # macOS / Linux
 python main.py
 ```
-
-> Sur macOS/Linux, utilise `python3` si `python` ne fonctionne pas.
 
 ## Sauvegarde
 
