@@ -486,10 +486,28 @@ class HomeWindow(QMainWindow):
         item.set_device_name(pc.name)
         item.set_device_subtitle(pc.ip)
 
+    def update_switch_subtitle(self, item):
+        sw = item.switch
+        total = len(sw.ports)
+        libres = 0
+        for port in sw.ports.values():
+            if port is None:
+                libres += 1
+        item.set_device_subtitle(str(libres) + "/" + str(total) + " ports libres")
+
     def attach_switch_to_item(self, item, sw):
         item.switch = sw
         item.set_device_name(sw.nom)
-        item.set_device_subtitle("")
+        self.update_switch_subtitle(item)
+
+    def disconnect_and_update(self, cable):
+        item1 = cable.item1
+        item2 = cable.item2
+        disconnect_cable(self, cable)
+        if hasattr(item1, "switch"):
+            self.update_switch_subtitle(item1)
+        if hasattr(item2, "switch"):
+            self.update_switch_subtitle(item2)
 
     def remove_device_item(self, item):
         if self.pending_connection_item is item:
@@ -587,7 +605,7 @@ class HomeWindow(QMainWindow):
                 if hasattr(other, "switch") and other_port is not None:
                     label += f" (port distant {other_port})"
                 action = disconnect_menu.addAction(label)
-                action.triggered.connect(lambda checked=False, c=detail["cable"]: disconnect_cable(self, c))
+                action.triggered.connect(lambda checked=False, c=detail["cable"]: self.disconnect_and_update(c))
 
         menu.addSeparator()
         delete_action = menu.addAction("Supprimer")
@@ -700,6 +718,12 @@ class HomeWindow(QMainWindow):
         cable.update_position()
         self.cables.append(cable)
         self.cancel_connection_mode()
+
+        if hasattr(first, "switch"):
+            self.update_switch_subtitle(first)
+        if hasattr(item, "switch"):
+            self.update_switch_subtitle(item)
+
         return True
 
 
