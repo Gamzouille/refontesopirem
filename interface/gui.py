@@ -207,7 +207,11 @@ class HomeWindow(QMainWindow):
             self.scene.addItem(cable)
             cable.update_position()
             self.cables.append(cable)
-        
+
+        for item in self.devices:
+            if hasattr(item, "switch"):
+                self.update_switch_subtitle(item)
+
     def sceneEventFilter(self, watched, event):
         if event.type() == event.GraphicsSceneMove:
             for c in self.cables:
@@ -382,6 +386,10 @@ class HomeWindow(QMainWindow):
             self.scene.addItem(cable)
             cable.update_position()
             self.cables.append(cable)
+
+        for item in self.devices:
+            if hasattr(item, "switch"):
+                self.update_switch_subtitle(item)
 
     def create_project(self):
         self.project_window = ProjectWindow()
