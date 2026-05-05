@@ -66,6 +66,7 @@ class HomeWindow(QMainWindow):
         self.pending_connection_item = None
         self.temp_cable = None
         self.active_context_menu = None
+        self.clipboard_data = None
         self.ping_animation_timer = QTimer(self)
         self.ping_animation_timer.timeout.connect(
     lambda: advance_ping_animation(self)
@@ -526,6 +527,26 @@ class HomeWindow(QMainWindow):
         if item.scene() is not None:
             self.scene.removeItem(item)
 
+    def copy_item(self, item):
+        if hasattr(item, "pc"):
+            d = item.pc.to_dict()
+            self.clipboard_data = {"type": "pc", "name": d["name"], "ip": d["ip"]}
+        elif hasattr(item, "switch"):
+            d = item.switch.to_dict()
+            self.clipboard_data = {"type": "switch", "nom": d["nom"], "nb_ports": d["nb_ports"]}
+
+    def paste_item(self):
+        if self.clipboard_data is None:
+            return
+        if self.clipboard_data["type"] == "pc":
+            self.ajoutePC()
+            self._pc_window.nom.setText(self.clipboard_data["name"])
+            self._pc_window.ip.setText(self.clipboard_data["ip"])
+        elif self.clipboard_data["type"] == "switch":
+            self.ajouteSwitch()
+            self._switch_window.nom.setText(self.clipboard_data["nom"])
+            self._switch_window.ports.setText(str(self.clipboard_data["nb_ports"]))
+
     def on_device_clicked(self, item):
         if hasattr(item, "pc"):
             pc = item.pc
@@ -555,6 +576,9 @@ class HomeWindow(QMainWindow):
 
         info_action = menu.addAction("Voir les infos")
         info_action.triggered.connect(lambda: self.on_device_clicked(item))
+
+        copy_action = menu.addAction("Copier")
+        copy_action.triggered.connect(lambda: self.copy_item(item))
 
         cache_label = "Voir le cache ARP" if hasattr(item, "pc") else "Voir la table MAC"
         cache_action = menu.addAction(cache_label)
@@ -909,6 +933,12 @@ class NetworkGraphicsView(QGraphicsView):
         add_pc_action.triggered.connect(self.parent_window.ajoutePC)
         add_switch_action.triggered.connect(self.parent_window.ajouteSwitch)
         clear_action.triggered.connect(self.parent_window.clear_project)
+
+        if self.parent_window.clipboard_data is not None:
+            menu.addSeparator()
+            scene_pos = self.mapToScene(event.pos())
+            paste_action = menu.addAction("Coller")
+            paste_action.triggered.connect(lambda: self.parent_window.paste_item())
 
         menu.exec(event.globalPos())
         event.accept()
